@@ -4,10 +4,13 @@ using TfsBuildDefinitionsCommon;
 
 namespace TfsUpdateBuildDefinitions
 {
-    class Options : BaseOptions
+    class Options : BaseUpdateOptions
     {
         [Option('p', "project", Required = false, HelpText = "Team Project.")]
         public string TeamProject { get; set; }
+
+        [Option('b', "build", Required = false, HelpText = "Build definition name.")]
+        public string BuildName { get; set; }
 
         [Option('m', "parallel", HelpText = "Parallel processing.")]
         public bool Parallel { get; set; }
@@ -24,7 +27,7 @@ namespace TfsUpdateBuildDefinitions
             var help = new HelpText
             {
                 Heading = new HeadingInfo("TfsUpdateBuildDefinitions", "1.0.0.0"),
-                Copyright = new CopyrightInfo("Toolfactory - Logitravel - 20 cool pillows :-)", 2014),
+                Copyright = new CopyrightInfo("Toolfactory", 2014),
                 AdditionalNewLineAfterOption = true,
                 AddDashesToOption = true
             };

@@ -55,7 +55,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="BaseOptions.cs" />
+    <Compile Include="BaseUpdateOptions.cs" />
     <Compile Include="BuildDefinitionOptions.cs" />
     <Compile Include="CommonStructure.cs" />
     <Compile Include="Constants.cs" />

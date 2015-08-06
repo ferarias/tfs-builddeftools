@@ -22,7 +22,7 @@ namespace TfsBuildDefinitionsCommon
         public readonly string StandardTemplatePath;
         public readonly Uri TeamProjectCollection;
 
-        public CommonStructure(BaseOptions options)
+        public CommonStructure(BaseUpdateOptions options)
         {
             // Read config options
             TeamProjectCollection =

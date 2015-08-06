@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using Microsoft.TeamFoundation.Build.Client;
+using Microsoft.TeamFoundation.Server;
 
 namespace TfsBuildDefinitionsCommon
 {
@@ -16,7 +18,37 @@ namespace TfsBuildDefinitionsCommon
             return buildName;
         }
 
-        
+        /// <summary>
+        /// Queries TFS for a list of build definitions
+        /// </summary>
+        /// <param name="projectName">If set, only builddefs for this project are queried</param>
+        /// <param name="buildName"></param>
+        /// <returns></returns>
+        public static IEnumerable<IBuildDefinitionQueryResult> QueryBuildDefinitions(ICommonStructureService css, IBuildServer bs, string projectName = "", string buildName = "")
+        {
+            var specs = new List<IBuildDefinitionSpec>();
+
+            if (String.IsNullOrWhiteSpace(projectName))
+            {
+                // Get a query spec for each team project
+                if (String.IsNullOrWhiteSpace(buildName))
+                    specs.AddRange(css.ListProjects().Select(pi => bs.CreateBuildDefinitionSpec(pi.Name)));
+                else
+                    specs.AddRange(css.ListProjects().Select(pi => bs.CreateBuildDefinitionSpec(pi.Name, buildName)));
+            }
+            else
+            {
+                // Get a query spec just for this team project
+                if (String.IsNullOrWhiteSpace(buildName))
+                    specs.Add(bs.CreateBuildDefinitionSpec(projectName));
+                else
+                    specs.Add(bs.CreateBuildDefinitionSpec(projectName, buildName));
+            }
+
+            // Query the definitions
+            var results = bs.QueryBuildDefinitions(specs.ToArray());
+            return results;
+        }
 
         public static bool ObjectsAreEquivalent(object a, object b)
         {

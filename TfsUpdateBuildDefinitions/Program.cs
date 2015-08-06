@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using CommandLine;
 using Microsoft.TeamFoundation.Build.Client;
 using Microsoft.TeamFoundation.Build.Workflow;
+using Microsoft.TeamFoundation.Server;
 using TfsBuildDefinitionsCommon;
 
 namespace TfsUpdateBuildDefinitions
@@ -135,7 +136,8 @@ namespace TfsUpdateBuildDefinitions
 
         private static List<IBuildDefinition> ChangeDefinitions(Options options)
         {
-            var buildDefinitionResults = QueryBuildDefinitions(options.TeamProject);
+            var buildDefinitionResults = Helpers.QueryBuildDefinitions(CommonData.CommonStructureService, CommonData.BuildServer,
+                options.TeamProject, options.BuildName);
 
             var buildDefinitionsToSave = new List<IBuildDefinition>();
             foreach (var buildDefinitionResult in buildDefinitionResults)
@@ -167,30 +169,7 @@ namespace TfsUpdateBuildDefinitions
 
         }
 
-        /// <summary>
-        /// Queries TFS for a list of build definitions
-        /// </summary>
-        /// <param name="projectName">If set, only builddefs for this project are queried</param>
-        /// <returns></returns>
-        private static IEnumerable<IBuildDefinitionQueryResult> QueryBuildDefinitions(string projectName = "")
-        {
-            var specs = new List<IBuildDefinitionSpec>();
-
-            if (String.IsNullOrWhiteSpace(projectName))
-            {
-                // Get a query spec for each team project
-                specs.AddRange(CommonData.CommonStructureService.ListProjects().Select(pi => CommonData.BuildServer.CreateBuildDefinitionSpec(pi.Name)));
-            }
-            else
-            {
-                // Get a query spec just for this team project
-                specs.Add(CommonData.BuildServer.CreateBuildDefinitionSpec(projectName));
-            }
-
-            // Query the definitions
-            var results = CommonData.BuildServer.QueryBuildDefinitions(specs.ToArray());
-            return results;
-        }
+        
 
         private static bool ChangeDefinition(IBuildDefinition definition, Options options)
         {

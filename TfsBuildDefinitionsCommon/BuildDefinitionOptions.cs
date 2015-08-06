@@ -2,7 +2,7 @@
 
 namespace TfsBuildDefinitionsCommon
 {
-    public class BuildDefinitionOptions : BaseOptions
+    public class BuildDefinitionOptions : BaseUpdateOptions
     {
 
         [Option('n', "name", Required = true, HelpText = "Name of the project or build (suffix will be appended)")]

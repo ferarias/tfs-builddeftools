@@ -2,7 +2,7 @@
 
 namespace TfsBuildDefinitionsCommon
 {
-    public class BaseOptions
+    public class BaseUpdateOptions
     {
         [Option('c', "collection", Required = false, DefaultValue = "Logitravel", HelpText = "Team Collection Name. E.g.: \"Logitravel\"")]
         public string TeamCollection { get; set; }

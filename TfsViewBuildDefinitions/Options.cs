@@ -12,7 +12,7 @@ namespace TfsViewBuildDefinitions
         [Option('p', "project", Required = false, HelpText = "Team Project.")]
         public string TeamProject { get; set; }
 
-        [Option('b', "build", Required = false, HelpText = "Build definition name.")]
+        [Option('b', "build", Required = false, HelpText = "Build definition name (wildacards accepted).")]
         public string BuildName { get; set; }
 
         [Option('t', "printtemplate", HelpText = "Print Template")]
@@ -41,7 +41,7 @@ namespace TfsViewBuildDefinitions
             var help = new HelpText
             {
                 Heading = new HeadingInfo("TfsViewBuildOptions", "1.0.0.0"),
-                Copyright = new CopyrightInfo("Toolfactory - Logitravel - 20 cool pillows 8^)", 2015),
+                Copyright = new CopyrightInfo("Toolfactory", 2015),
                 AdditionalNewLineAfterOption = true,
                 AddDashesToOption = true
             };
