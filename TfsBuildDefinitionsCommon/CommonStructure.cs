@@ -72,8 +72,8 @@ namespace TfsBuildDefinitionsCommon
             {
                 var allTemplates = BuildServer.QueryProcessTemplates(teamProject);
                 var templates = allTemplates.Where(p => p.ServerPath == serverPath).ToList();
-                if (templates.Any()) 
-                    return templates.ElementAt(0);
+                if (templates.Any())
+                    return templates.Last();
                 
 
                 var pt = BuildServer.CreateProcessTemplate(teamProject, serverPath);

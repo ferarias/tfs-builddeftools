@@ -176,9 +176,8 @@ namespace TfsUpdateBuildDefinitions
             try
             {
                 var buildType = GetBuildType(definition);
-                // for now, skip CDN and resources build definitions
-                if (buildType == CustomBuildType.Cdn || buildType == CustomBuildType.NoCompileDev
-                     || buildType == CustomBuildType.NoCompileMain || buildType == CustomBuildType.NoCompileRelease) return false;
+                //// for now, skip CDN build definitions
+                if (buildType == CustomBuildType.Cdn) return false;
 
                 if (!CheckTemplates(buildType)) return false;
                 
@@ -207,7 +206,7 @@ namespace TfsUpdateBuildDefinitions
 
                 definition.ProcessParameters = WorkflowHelpers.SerializeProcessParameters(paramValues);
                 Console.ForegroundColor = ConsoleColor.Cyan;
-                Console.WriteLine("Build definition '{0}' has changes", definition.Name);
+                Console.WriteLine("Build definition '{0}' ({1}) has changes", definition.Name, buildType);
                 Console.ResetColor();
                 Console.WriteLine(messages);
                 return true;
@@ -230,21 +229,53 @@ namespace TfsUpdateBuildDefinitions
             else subfolder = Constants.DevFolder;
 
 
-            var config = new Dictionary<string, object>()
+            Dictionary<string, object> config;
+            switch (buildType)
             {
-                {"CreateWorkItem", false},
-                {"PerformTestImpactAnalysis", false},
-                {"CreateLabel", true},
-                {"AssociateChangesetsAndWorkItems", false},
-                {"ConfigurationsToBuild", (isMain || isRelease) ? new[] {Constants.AnyCpuRelease} : new[] {Constants.AnyCpuDebug}},
-                {"DisableTests", !isRelease},
-                {"DropBuild", (isMain || isRelease) && buildType != CustomBuildType.WindowsService},
-                {"IsRelease", isRelease},
-                {"DeploymentPackagesLocation", buildType == CustomBuildType.StandardRelease ? CommonData.DeploymentPackagesLocation : null},
-                {"CustomBinariesReferencePath", Path.Combine(options.SharedTfsLocation, Constants.AssembliesFolder, isRelease ? Constants.ReleaseFolder : Constants.MainFolder)},
-                {"CustomBinariesDestination", Path.Combine(options.SharedTfsLocation, Constants.AssembliesFolder, subfolder)},
-                {"SymbolStorePath", Path.Combine(options.SharedTfsLocation, Constants.SymbolsFolder, subfolder)},
-            };
+                case CustomBuildType.NoCompileDev:
+                case CustomBuildType.NoCompileMain:
+                case CustomBuildType.NoCompileRelease:
+                    config = new Dictionary<string, object>
+                    {
+                        {"CreateWorkItem", false},
+                        {"IsRelease", isRelease},
+                        {"DeploymentPackagesLocation", buildType == CustomBuildType.NoCompileRelease ? CommonData.DeploymentPackagesLocation : null}
+                    };
+                    break;
+                case CustomBuildType.WindowsService:
+                    config = new Dictionary<string, object>
+                    {
+                        {"CreateWorkItem", false},
+                        {"PerformTestImpactAnalysis", false},
+                        {"CreateLabel", true},
+                        {"AssociateChangesetsAndWorkItems", false},
+                        {"ConfigurationsToBuild", (isMain || isRelease) ? new[] {Constants.AnyCpuRelease} : new[] {Constants.AnyCpuDebug}},
+                        {"DisableTests", !isRelease},
+                        {"DropBuild", false},
+                        {"IsRelease", isRelease},
+                        {"CustomBinariesReferencePath", Path.Combine(options.SharedTfsLocation, Constants.AssembliesFolder, isRelease ? Constants.ReleaseFolder : Constants.MainFolder)},
+                        {"CustomBinariesDestination", Path.Combine(options.SharedTfsLocation, Constants.AssembliesFolder, subfolder)},
+                        {"SymbolStorePath", Path.Combine(options.SharedTfsLocation, Constants.SymbolsFolder, subfolder)},
+                    };
+                    break;
+                default:
+                    config = new Dictionary<string, object>
+                    {
+                        {"CreateWorkItem", false},
+                        {"PerformTestImpactAnalysis", false},
+                        {"CreateLabel", true},
+                        {"AssociateChangesetsAndWorkItems", false},
+                        {"ConfigurationsToBuild", (isMain || isRelease) ? new[] {Constants.AnyCpuRelease} : new[] {Constants.AnyCpuDebug}},
+                        {"DisableTests", !isRelease},
+                        {"DropBuild", (isMain || isRelease)},
+                        {"IsRelease", isRelease},
+                        {"DeploymentPackagesLocation", buildType == CustomBuildType.StandardRelease ? CommonData.DeploymentPackagesLocation : null},
+                        {"CustomBinariesReferencePath",Path.Combine(options.SharedTfsLocation, Constants.AssembliesFolder, isRelease ? Constants.ReleaseFolder : Constants.MainFolder)},
+                        {"CustomBinariesDestination", Path.Combine(options.SharedTfsLocation, Constants.AssembliesFolder, subfolder)},
+                        {"SymbolStorePath", Path.Combine(options.SharedTfsLocation, Constants.SymbolsFolder, subfolder)},
+                    };
+                    break;
+            }
 
             if (!_externalConfiguration.ContainsKey(definition.Name)) return config;
 
@@ -283,10 +314,10 @@ namespace TfsUpdateBuildDefinitions
                     newLocation = Path.Combine(options.SharedTfsLocation, Constants.DropFolder, Constants.MainFolder);
                     break;
                 case CustomBuildType.StandardRelease:
-                case CustomBuildType.NoCompileRelease:
                     newLocation = "#/";
                     break;
                 case CustomBuildType.WindowsService:
+                case CustomBuildType.NoCompileRelease:
                     newLocation = "";
                     break;
             }
@@ -373,15 +404,14 @@ namespace TfsUpdateBuildDefinitions
             var buildDefName = definition.Name.ToLower();
             if (buildDefName.EndsWith(Constants.ServiceBuildsNameExtension.ToLower()))
                 buildType = CustomBuildType.WindowsService;
-            else if (buildDefName.StartsWith(Constants.CdnBuildsNamePrefix.ToLower()))
-                buildType = CustomBuildType.Cdn;
             else if (buildDefName.EndsWith(Constants.ResourcesDevBuildsNameExtension.ToLower()))
                 buildType = CustomBuildType.NoCompileDev;
             else if (buildDefName.EndsWith(Constants.ResourcesMainBuildsNameExtension.ToLower()))
                 buildType = CustomBuildType.NoCompileMain;
             else if (buildDefName.EndsWith(Constants.ResourcesReleaseBuildsNameExtension.ToLower()))
                 buildType = CustomBuildType.NoCompileRelease;
-            else if (buildDefName.EndsWith(Constants.DevBuildsNameExtension.ToLower()))
+            else if (buildDefName.StartsWith(Constants.CdnBuildsNamePrefix.ToLower()))
+                buildType = CustomBuildType.Cdn;else if (buildDefName.EndsWith(Constants.DevBuildsNameExtension.ToLower()))
                 buildType = CustomBuildType.StandardDev;
             else if (buildDefName.EndsWith(Constants.MainBuildsNameExtension.ToLower()))
                 buildType = CustomBuildType.StandardMain;
