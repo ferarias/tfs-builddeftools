@@ -1,15 +1,14 @@
 ﻿using System;
+using System.Configuration;
 using System.Linq;
 using Microsoft.TeamFoundation.Build.Client;
 using Microsoft.TeamFoundation.Client;
 using Microsoft.TeamFoundation.Server;
-using Toolfactory.Configuration;
 
 namespace TfsBuildDefinitionsCommon
 {
     public class CommonStructure
     {
-        private readonly ConfigurationManager _config = ConfigurationManager.SingleInstance;
         public readonly IBuildServer BuildServer;
         public readonly TfsTeamProjectCollection Collection;
         public readonly ICommonStructureService CommonStructureService;
@@ -27,17 +26,17 @@ namespace TfsBuildDefinitionsCommon
         {
             // Read config options
             TeamProjectCollection =
-                new Uri(String.Format(_config.AsString(SettingsKeys.TfsUri, Constants.DefaultTfsUri),
+                new Uri(String.Format(GetConfigValueAsString(SettingsKeys.TfsUri, Constants.DefaultTfsUri),
                     options.TeamCollection));
             Collection = TfsTeamProjectCollectionFactory.GetTeamProjectCollection(TeamProjectCollection);
             BuildServer = Collection.GetService<IBuildServer>();
             CommonStructureService = Collection.GetService<ICommonStructureService>();
 
-            string standardTemplateName = _config.AsString(SettingsKeys.StandardTemplateName,
+            string standardTemplateName = GetConfigValueAsString(SettingsKeys.StandardTemplateName,
                 Constants.DefaultStandardTemplateName);
-            string servicesTemplateName = _config.AsString(SettingsKeys.ServicesTemplate,
+            string servicesTemplateName = GetConfigValueAsString(SettingsKeys.ServicesTemplate,
                 Constants.DefaultServicesTemplateName);
-            string noCompileFullTemplateName = _config.AsString(SettingsKeys.NoCompileFullTemplate,
+            string noCompileFullTemplateName = GetConfigValueAsString(SettingsKeys.NoCompileFullTemplate,
                 Constants.DefaultNoCompileFullTemplateName);
 
             StandardTemplatePath = String.Format("$/{0}/BuildProcessTemplates/{1}", options.TemplatesTeamProject,
@@ -62,7 +61,7 @@ namespace TfsBuildDefinitionsCommon
                 Console.WriteLine("No-compile template not found in '{0}' of '{1}'", NoCompileFullTemplatePath,
                     TeamProjectCollection);
 
-            DeploymentPackagesLocation = _config.AsString(SettingsKeys.PackagesDropLocation,
+            DeploymentPackagesLocation = GetConfigValueAsString(SettingsKeys.PackagesDropLocation,
                 Constants.DefaultPackagesDropLocation);
         }
 
@@ -86,6 +85,14 @@ namespace TfsBuildDefinitionsCommon
                 Console.WriteLine("Exception while checking or creating template: '{0}'", ex.Message);
                 return null;
             }
+        }
+
+        private static string GetConfigValueAsString(string key, string defaultValue = "")
+        {
+            var v = ConfigurationManager.AppSettings[key];
+            if (String.IsNullOrEmpty(v))
+                v = defaultValue;
+            return v;
         }
     }
 }
