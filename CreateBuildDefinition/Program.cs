@@ -29,7 +29,7 @@ namespace TfsCreateServiceBuildDefinition
                 {
                     CommonData = new CommonStructure(options);
 
-                    Console.WriteLine("\tTeam Project Collection: {0}", CommonData.TeamProjectCollection);
+                    Console.WriteLine("\tTeam Project Collection: {0}", options.TeamCollection);
                     Console.WriteLine("\tTeam Project: {0}", options.TeamProject);
                     Console.WriteLine("\tShared TFS location: {0}", options.SharedTfsLocation);
                     Console.WriteLine("\tTemplates Team Project: {0}", options.TemplatesTeamProject);

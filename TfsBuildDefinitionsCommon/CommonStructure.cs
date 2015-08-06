@@ -20,15 +20,11 @@ namespace TfsBuildDefinitionsCommon
         public readonly string ServicesTemplatePath;
         public readonly IProcessTemplate StandardTemplate;
         public readonly string StandardTemplatePath;
-        public readonly Uri TeamProjectCollection;
 
         public CommonStructure(BaseUpdateOptions options)
         {
             // Read config options
-            TeamProjectCollection =
-                new Uri(String.Format(GetConfigValueAsString(SettingsKeys.TfsUri, Constants.DefaultTfsUri),
-                    options.TeamCollection));
-            Collection = TfsTeamProjectCollectionFactory.GetTeamProjectCollection(TeamProjectCollection);
+            Collection = TfsTeamProjectCollectionFactory.GetTeamProjectCollection(new Uri(options.TeamCollection));
             BuildServer = Collection.GetService<IBuildServer>();
             CommonStructureService = Collection.GetService<ICommonStructureService>();
 
@@ -49,17 +45,17 @@ namespace TfsBuildDefinitionsCommon
             StandardTemplate = CheckCreate(options.TemplatesTeamProject, StandardTemplatePath);
             if (StandardTemplate == null)
                 Console.WriteLine("Standard template not found in '{0}' of '{1}'", StandardTemplatePath,
-                    TeamProjectCollection);
+                    options.TeamCollection);
 
             ServicesTemplate = CheckCreate(options.TemplatesTeamProject, ServicesTemplatePath);
             if (ServicesTemplate == null)
                 Console.WriteLine("Services template not found in '{0}' of '{1}'", ServicesTemplatePath,
-                    TeamProjectCollection);
+                    options.TeamCollection);
 
             NoCompileFullTemplate = CheckCreate(options.TemplatesTeamProject, NoCompileFullTemplatePath);
             if (NoCompileFullTemplate == null)
                 Console.WriteLine("No-compile template not found in '{0}' of '{1}'", NoCompileFullTemplatePath,
-                    TeamProjectCollection);
+                    options.TeamCollection);
 
             DeploymentPackagesLocation = GetConfigValueAsString(SettingsKeys.PackagesDropLocation,
                 Constants.DefaultPackagesDropLocation);

@@ -4,7 +4,7 @@ namespace TfsBuildDefinitionsCommon
 {
     public class BaseUpdateOptions
     {
-        [Option('c', "collection", Required = false, DefaultValue = "Logitravel", HelpText = "Team Collection Name. E.g.: \"Logitravel\"")]
+        [Option('c', "collection", Required = true, HelpText = "Team Collection Uri.")]
         public string TeamCollection { get; set; }
 
         [Option('x', "tplproject", Required = false, DefaultValue = Constants.DefaultTemplatesTeamProject, HelpText = "Templates Team Project. E.g.: \"Arquitectura\"")]
