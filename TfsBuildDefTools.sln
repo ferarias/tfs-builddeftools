@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 2013
-VisualStudioVersion = 12.0.31101.0
+VisualStudioVersion = 12.0.40629.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TfsUpdateBuildDefinitions", "TfsUpdateBuildDefinitions\TfsUpdateBuildDefinitions.csproj", "{7B763C02-4743-446F-A517-5AF1F249250D}"
 EndProject
@@ -13,28 +13,11 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TfsCreateServiceBuildDefini
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TfsCreateWebBuildDefinitions", "TfsCreateWebBuildDefinitions\TfsCreateWebBuildDefinitions.csproj", "{9E5BE745-DA04-417D-903F-DF80AA7DAD00}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TfsFindBuildAssemblies", "TfsFindBuildAssemblies\TfsFindBuildAssemblies.csproj", "{40E0C4D4-64BC-4AA6-AAF7-682D679784C0}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TfsCompareBuildDefinitions", "TfsCompareBuildDefinitions\TfsCompareBuildDefinitions.csproj", "{EF07EAAA-0134-4DE6-BCAD-22DA55B3E634}"
+EndProject
 Global
-	GlobalSection(TeamFoundationVersionControl) = preSolution
-		SccNumberOfProjects = 6
-		SccEnterpriseProvider = {4CA58AB2-18FA-4F8D-95D4-32DDF27D184C}
-		SccTeamFoundationServer = http://logpmtfs01v:8080/tfs/logitravel
-		SccLocalPath0 = .
-		SccProjectUniqueName1 = TfsUpdateBuildDefinitions\\TfsUpdateBuildDefinitions.csproj
-		SccProjectName1 = TfsUpdateBuildDefinitions
-		SccLocalPath1 = TfsUpdateBuildDefinitions
-		SccProjectUniqueName2 = TfsViewBuildDefinitions\\TfsViewBuildDefinitions.csproj
-		SccProjectName2 = TfsViewBuildDefinitions
-		SccLocalPath2 = TfsViewBuildDefinitions
-		SccProjectUniqueName3 = TfsBuildDefinitionsCommon\\TfsBuildDefinitionsCommon.csproj
-		SccProjectName3 = TfsBuildDefinitionsCommon
-		SccLocalPath3 = TfsBuildDefinitionsCommon
-		SccProjectUniqueName4 = CreateBuildDefinition\\TfsCreateServiceBuildDefinition.csproj
-		SccProjectName4 = CreateBuildDefinition
-		SccLocalPath4 = CreateBuildDefinition
-		SccProjectUniqueName5 = TfsCreateWebBuildDefinitions\\TfsCreateWebBuildDefinitions.csproj
-		SccProjectName5 = TfsCreateWebBuildDefinitions
-		SccLocalPath5 = TfsCreateWebBuildDefinitions
-	EndGlobalSection
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
 		Debug|Mixed Platforms = Debug|Mixed Platforms
@@ -96,6 +79,26 @@ Global
 		{9E5BE745-DA04-417D-903F-DF80AA7DAD00}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
 		{9E5BE745-DA04-417D-903F-DF80AA7DAD00}.Release|Mixed Platforms.Build.0 = Release|Any CPU
 		{9E5BE745-DA04-417D-903F-DF80AA7DAD00}.Release|x86.ActiveCfg = Release|Any CPU
+		{40E0C4D4-64BC-4AA6-AAF7-682D679784C0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{40E0C4D4-64BC-4AA6-AAF7-682D679784C0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{40E0C4D4-64BC-4AA6-AAF7-682D679784C0}.Debug|Mixed Platforms.ActiveCfg = Debug|Any CPU
+		{40E0C4D4-64BC-4AA6-AAF7-682D679784C0}.Debug|Mixed Platforms.Build.0 = Debug|Any CPU
+		{40E0C4D4-64BC-4AA6-AAF7-682D679784C0}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{40E0C4D4-64BC-4AA6-AAF7-682D679784C0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{40E0C4D4-64BC-4AA6-AAF7-682D679784C0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{40E0C4D4-64BC-4AA6-AAF7-682D679784C0}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
+		{40E0C4D4-64BC-4AA6-AAF7-682D679784C0}.Release|Mixed Platforms.Build.0 = Release|Any CPU
+		{40E0C4D4-64BC-4AA6-AAF7-682D679784C0}.Release|x86.ActiveCfg = Release|Any CPU
+		{EF07EAAA-0134-4DE6-BCAD-22DA55B3E634}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EF07EAAA-0134-4DE6-BCAD-22DA55B3E634}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EF07EAAA-0134-4DE6-BCAD-22DA55B3E634}.Debug|Mixed Platforms.ActiveCfg = Debug|Any CPU
+		{EF07EAAA-0134-4DE6-BCAD-22DA55B3E634}.Debug|Mixed Platforms.Build.0 = Debug|Any CPU
+		{EF07EAAA-0134-4DE6-BCAD-22DA55B3E634}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{EF07EAAA-0134-4DE6-BCAD-22DA55B3E634}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EF07EAAA-0134-4DE6-BCAD-22DA55B3E634}.Release|Any CPU.Build.0 = Release|Any CPU
+		{EF07EAAA-0134-4DE6-BCAD-22DA55B3E634}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
+		{EF07EAAA-0134-4DE6-BCAD-22DA55B3E634}.Release|Mixed Platforms.Build.0 = Release|Any CPU
+		{EF07EAAA-0134-4DE6-BCAD-22DA55B3E634}.Release|x86.ActiveCfg = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

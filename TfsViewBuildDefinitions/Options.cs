@@ -12,7 +12,7 @@ namespace TfsViewBuildDefinitions
         [Option('p', "project", Required = false, HelpText = "Team Project.")]
         public string TeamProject { get; set; }
 
-        [Option('b', "build", Required = false, HelpText = "Build definition name (wildacards accepted).")]
+        [Option('b', "build", Required = false, HelpText = "Build definition name (wildcards accepted).")]
         public string BuildName { get; set; }
 
         [Option('t', "printtemplate", HelpText = "Print Template")]
