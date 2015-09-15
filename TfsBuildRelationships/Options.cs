@@ -16,6 +16,9 @@ namespace TfsBuildRelationships
         [Option('o', "out", Required = false, HelpText = "Output file.")]
         public string OutFile { get; set; }
 
+        [Option('v', "verbose", Required = false, DefaultValue = false, HelpText = "Verbose output.")]
+        public bool Verbose { get; set; }
+
         [HelpOption]
         public string GetUsage()
         {
