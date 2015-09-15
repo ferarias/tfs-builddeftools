@@ -10,9 +10,6 @@ namespace TfsBuildRelationships
         [OptionArray('c', "collections", Required = true, HelpText = "Team Collections Uris.")]
         public string[] TeamCollections { get; set; }
 
-        [Option('a', "assemblies", Required = true, HelpText = "Assemblies location.")]
-        public string AssembliesLocation { get; set; }
-
         [Option('o', "out", Required = false, HelpText = "Output file.")]
         public string OutFile { get; set; }
 
