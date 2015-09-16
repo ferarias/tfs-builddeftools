@@ -1,12 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Collections.Generic;
 
-namespace TfsBuildRelationships
+namespace TfsBuildRelationships.Structures
 {
-    public class SolutionRelations
+    public class AssembliesInfo
     {
         /// <summary>
         /// Own assemblies
@@ -18,10 +14,17 @@ namespace TfsBuildRelationships
         /// </summary>
         public HashSet<string> ReferencedAssemblies { get; set; }
 
-        public SolutionRelations()
+        public AssembliesInfo()
         {
             OwnAssemblies = new HashSet<string>();
             ReferencedAssemblies = new HashSet<string>();
         }
+
+        public void MergeWith(AssembliesInfo other)
+        {
+            OwnAssemblies.UnionWith(other.OwnAssemblies);
+            ReferencedAssemblies.UnionWith(other.ReferencedAssemblies);
+        }
+
     }
 }

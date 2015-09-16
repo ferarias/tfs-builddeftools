@@ -20,37 +20,37 @@ namespace TfsBuildRelationships
         {
             var nodes = graph.GetNodes();
 
-            //// TODO can this first loop be replaced with LINQ, maybe with a zip?
-            //var idsByNameMap = new Dictionary<string, int>();
-            //var id = 1;
-            //foreach (var nodeName in nodes)
-            //{
-            //    idsByNameMap.Add(nodeName, id);
-            //    id++;
-            //}
+            // TODO can this first loop be replaced with LINQ, maybe with a zip?
+            var idsByNameMap = new Dictionary<string, int>();
+            var id = 1;
+            foreach (var nodeName in nodes)
+            {
+                idsByNameMap.Add(nodeName, id);
+                id++;
+            }
 
             var commandText = new StringBuilder();
             commandText.AppendLine("digraph G {");
 
             // handle extra commands
-            if (extraCommands.Trim().Length > 0)
+            if (!String.IsNullOrWhiteSpace(extraCommands))
             {
-                commandText.Append("    ");
-                commandText.Append(extraCommands.Trim());
-                commandText.Append("\r\n");
+                commandText.AppendFormat("\t{0}", extraCommands.Trim());
+                commandText.AppendLine();
             }
+
+            var nodeLabels = new StringBuilder();
 
             foreach (var dependant in nodes)
             {
-                commandText.AppendFormat(" \"{0}\" -> {{ ", dependant);
-                foreach (var dependency in graph.GetDependenciesForNode(dependant))
-                {
-                    commandText.AppendFormat("\"{0}\";", dependency);
-                }
-                commandText.AppendFormat(" }}");
+                var dependantId = idsByNameMap[dependant];
+                // 1 [label="SampleProject",shape=circle,hight=0.12,width=0.12,fontsize=1];
+                nodeLabels.AppendFormat("\t{0} [shape=box,fontsize=8,label=\"{1}\"];\r\n", dependantId, dependant);
+                commandText.AppendFormat("\t{0} -> {{ {1} }} ", dependantId, String.Join(";", graph.GetDependenciesForNode(dependant).Select(x=>idsByNameMap[x])));
                 commandText.AppendLine();
             }
-            commandText.AppendLine("}}");
+            commandText.Append(nodeLabels.ToString());
+            commandText.AppendLine("}");
 
             return commandText.ToString();
         }

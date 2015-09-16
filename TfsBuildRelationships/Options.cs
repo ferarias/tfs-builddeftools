@@ -16,6 +16,9 @@ namespace TfsBuildRelationships
         [Option('r', "reduction", Required = false, HelpText = "Enable transitive reduction on generated dependencies graph.")]
         public bool TransitiveReduction { get; set; }
 
+        [Option('x', "extracommands", Required = false, HelpText = "Graph extra commands to be included in DOT file.")]
+        public string Extracommands { get; set; }
+
         [Option('v', "verbose", Required = false, DefaultValue = false, HelpText = "Verbose output.")]
         public bool Verbose { get; set; }
 
