@@ -50,27 +50,27 @@ namespace TfsBuildRelationships
                         Console.WriteLine("An error occured while exporting graph: {0}", ex.Message);
                     }
 
-                    var solutionDependencies = GetSolutionDependencies(_solutionRelationships);
+                    //var solutionDependencies = GetSolutionDependencies(_solutionRelationships);
 
-                    // Nodes nobody depends upon (highest-level assemblies)
-                    var startNodes = FindStartNodes(solutionDependencies);
+                    //// Nodes nobody depends upon (highest-level assemblies)
+                    //var startNodes = FindStartNodes(solutionDependencies);
 
-                    // Nodes with no dependencies (low-level assemblies)
-                    var endNodes = solutionDependencies.Where(x => x.Value.Count() == 0);
+                    //// Nodes with no dependencies (low-level assemblies)
+                    //var endNodes = solutionDependencies.Where(x => x.Value.Count() == 0);
 
-                    foreach(var solutionDependency in solutionDependencies)
-                    {
-                        if (solutionDependency.Value.Count() == 0)
-                            Console.WriteLine("{0} does not have dependencies", solutionDependency.Key);
-                        else
-                        {
-                            Console.WriteLine("{0} depends on", solutionDependency.Key);
-                            foreach (var dep in solutionDependency.Value)
-                                Console.WriteLine("\t{0}", dep);
-                        }
-                    }
+                    //foreach(var solutionDependency in solutionDependencies)
+                    //{
+                    //    if (solutionDependency.Value.Count() == 0)
+                    //        Console.WriteLine("{0} does not have dependencies", solutionDependency.Key);
+                    //    else
+                    //    {
+                    //        Console.WriteLine("{0} depends on", solutionDependency.Key);
+                    //        foreach (var dep in solutionDependency.Value)
+                    //            Console.WriteLine("\t{0}", dep);
+                    //    }
+                    //}
 
-                    FindCircularReferences(solutionDependencies, startNodes);
+                    //FindCircularReferences(solutionDependencies, startNodes);
 
                 }
                 catch (Exception ex)
