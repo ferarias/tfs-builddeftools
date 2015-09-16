@@ -10,6 +10,7 @@ using Microsoft.TeamFoundation.Server;
 using TfsBuildDefinitionsCommon;
 using Microsoft.TeamFoundation.VersionControl.Client;
 using Microsoft.Build.Evaluation;
+using System.Text;
 
 
 namespace TfsBuildRelationships
@@ -28,10 +29,25 @@ namespace TfsBuildRelationships
             {
                 try
                 {
+                    // Process each collection, build definition, solution, project and assembly
                     foreach (var teamCollection in _options.TeamCollections)
                     {
                         var tfsTeamProjectCollection = TfsTeamProjectCollectionFactory.GetTeamProjectCollection(new Uri(teamCollection));
                         ProcessTeamCollection(tfsTeamProjectCollection);
+                    }
+
+                    // Export dependencies graph
+                    try
+                    {
+                        if (_options.TransitiveReduction)
+                            _dependencies.TransitiveReduction();
+                        var dcb = new DotCommandBuilder();
+                        var dotCommand = dcb.GenerateDotCommand(_dependencies);
+                        File.WriteAllText(_options.OutFile, dotCommand, Encoding.UTF8);
+                    }
+                    catch(Exception ex)
+                    {
+                        Console.WriteLine("An error occured while exporting graph: {0}", ex.Message);
                     }
 
                     var solutionDependencies = GetSolutionDependencies(_solutionRelationships);
