@@ -1,16 +1,17 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using CommandLine;
+﻿using CommandLine;
+using Microsoft.Build.Evaluation;
 using Microsoft.TeamFoundation.Build.Client;
 using Microsoft.TeamFoundation.Build.Workflow;
 using Microsoft.TeamFoundation.Client;
 using Microsoft.TeamFoundation.Server;
-using TfsBuildDefinitionsCommon;
 using Microsoft.TeamFoundation.VersionControl.Client;
-using Microsoft.Build.Evaluation;
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
+using TfsBuildDefinitionsCommon;
 using TfsBuildRelationships.Structures;
 
 
@@ -18,58 +19,33 @@ namespace TfsBuildRelationships
 {
     static class Program
     {
-        private const string ProjectsToBuildParamName = "ProjectsToBuild";
-        private static Options _options = new Options();
-
         static void Main(string[] args)
         {
             // Try to parse options from command line
-            if (Parser.Default.ParseArguments(args, _options))
+            var options = new Options();
+            if (Parser.Default.ParseArguments(args, options))
             {
                 try
                 {
-                    var assemblyData = Process(_options);
-                    if (_options.Verbose)
-                        Console.WriteLine(assemblyData);
-                    else
-                        Console.WriteLine("{0} assemblies", assemblyData.OwnAssemblies().Count);
-                    var dependencies = assemblyData.GetSolutionDependencies();
+                    // Read and process collections, build definitions, solutions, projects and assemblies
+                    var parser = new TfsBuildsParser();
+                    var assemblyData = parser.Process(options.TeamCollections, options.ExcludedBuildDefinitions, options.Verbose);
+                    PrintAssemblyData(options, assemblyData);
+
+                    var graph = assemblyData.GetSolutionDependencies();
+                    var graphNodes = graph.GetNodes();
+
+                    // Calculate start and end nodes
+                    var startNodes = graphNodes.Where(x => !graphNodes.Any(y => graph.GetDependenciesForNode(y).Contains(x)));
+                    var endNodes = graphNodes.Where(x => graph.GetDependenciesForNode(x).Count() == 0);
+                    PrintStartAndEndNodes(startNodes, endNodes);
+
+                    // Find circular references between solutions
+                    var circularReferences = CircularReferencesHelper.FindCircularReferences(graph, startNodes, endNodes);
+                    PrintCircularReferences(circularReferences);
 
                     // Export dependencies graph
-                    try
-                    {
-                        if (_options.TransitiveReduction)
-                            dependencies.TransitiveReduction();
-                        var dcb = new DotCommandBuilder();
-                        var dotCommand = dcb.GenerateDotCommand(dependencies, _options.Extracommands);
-                        File.WriteAllText(_options.OutFile, dotCommand, Encoding.UTF8);
-                    }
-                    catch (Exception ex)
-                    {
-                        Console.WriteLine("An error occured while exporting graph: {0}", ex.Message);
-                    }
-
-                    //var solutionDependencies = GetSolutionDependencies(assemblyData);
-
-                    //// Nodes nobody depends upon (highest-level assemblies)
-                    //var startNodes = FindStartNodes(solutionDependencies);
-
-                    //// Nodes with no dependencies (low-level assemblies)
-                    //var endNodes = solutionDependencies.Where(x => x.Value.Count() == 0);
-
-                    //foreach (var solutionDependency in solutionDependencies)
-                    //{
-                    //    if (solutionDependency.Value.Count() == 0)
-                    //        Console.WriteLine("{0} does not have dependencies", solutionDependency.Key);
-                    //    else
-                    //    {
-                    //        Console.WriteLine("{0} depends on", solutionDependency.Key);
-                    //        foreach (var dep in solutionDependency.Value)
-                    //            Console.WriteLine("\t{0}", dep);
-                    //    }
-                    //}
-
-                    //FindCircularReferences(solutionDependencies, startNodes);
+                    ExportDependencyGraph(options, graph, circularReferences);
 
                 }
                 catch (Exception ex)
@@ -88,262 +64,77 @@ namespace TfsBuildRelationships
 
         }
 
-        private static TeamCollectionsAssembliesInfo Process(Options options)
+        private static void ExportDependencyGraph(Options options, DependencyGraph<string> graph, List<List<string>> circularReferences)
         {
-            var assemblyData = new TeamCollectionsAssembliesInfo();
-            // Process each collection, build definition, solution, project and assembly
-            foreach (var teamCollection in options.TeamCollections)
-            {
-                var tfsTeamProjectCollection = TfsTeamProjectCollectionFactory.GetTeamProjectCollection(new Uri(teamCollection));
-                var solutionRelationships = ProcessTeamCollection(tfsTeamProjectCollection);
-                assemblyData.Add(tfsTeamProjectCollection.DisplayName, solutionRelationships);
-            }
-            return assemblyData;
-        }
-
-        private static SolutionsAssembliesInfo ProcessBuildDefinition(TfsTeamProjectCollection teamCollection, IBuildDefinition buildDefinition)
-        {
-            if (_options.Verbose)
-                Console.WriteLine("Build definition: '{0}'", buildDefinition.Name);
-
-            var solutionsAssembliesInfo = new SolutionsAssembliesInfo();
             try
             {
-                var paramValues = WorkflowHelpers.DeserializeProcessParameters(buildDefinition.ProcessParameters);
-                //if (!paramValues.ContainsKey(SharedAssembliesParamName)) continue;
-                //var sharedAssemblies = (string)paramValues[SharedAssembliesParamName];
-
-                if (!paramValues.ContainsKey(ProjectsToBuildParamName))
-                    Console.WriteLine("Build definition '{0}' does not compile any project.", buildDefinition.Name);
-                else
-                {    
-                    var projectsToBuild = (string[])paramValues[ProjectsToBuildParamName];
-                    foreach (var solutionFile in projectsToBuild.Where(x => x.EndsWith(".sln")))
-                    {
-                        var assembliesInfo = ProcessSolution(teamCollection, buildDefinition, solutionFile);
-                        solutionsAssembliesInfo.Add(solutionFile, assembliesInfo);
-                    }
-                }
+                if (circularReferences.Count() == 0 && options.TransitiveReduction)
+                    graph.TransitiveReduction();
+                var dotCommandBuilder = new DotCommandBuilder();
+                dotCommandBuilder.ProcessLabel = new Func<string, string>(x => RenameLabel(x));
+                var dotCommand = dotCommandBuilder.GenerateDotCommand(graph, circularReferences, options.GraphExtracommands);
+                File.WriteAllText(options.OutFile, dotCommand, Encoding.ASCII);
+                Console.WriteLine("Graph exported to '{0}'", System.IO.Path.GetFullPath(options.OutFile));
             }
             catch (Exception ex)
             {
-                Console.WriteLine("Could not process build definition '{0}'. {1}", buildDefinition.Name, ex.Message);
+                Console.WriteLine("An error occured while exporting graph: {0}", ex.Message);
             }
-
-            if (_options.Verbose)
-                Console.WriteLine();
-
-            return solutionsAssembliesInfo;
         }
 
-        private static AssembliesInfo ProcessSolution(TfsTeamProjectCollection teamCollection, IBuildDefinition buildDefinition, string solutionFile)
+        private static void PrintCircularReferences(List<List<string>> circularReferences)
         {
-            if (_options.Verbose)
-                Console.WriteLine("Solution: '{0}'", solutionFile);
-
-            var solutionAssemblies = new AssembliesInfo();
-
-            try
+            if (circularReferences.Count > 0)
             {
-
-                using (var solutionFileStream = ReadFileFromServer(teamCollection, solutionFile))
-                {
-                    using (StreamReader reader = new StreamReader(solutionFileStream))
-                    {
-                        var solutionParser = new Solution(reader);
-                        var projects = solutionParser.Projects;
-                        foreach (var solutionProject in projects)
-                        {
-                            if (solutionProject.ProjectType != "SolutionFolder")
-                            {
-                                var projectDir = Path.GetDirectoryName(solutionFile);
-                                var fullPath = Path.Combine(projectDir, solutionProject.RelativePath);
-                                var projectFile = fullPath.Replace('\\', '/');
-                                var projectAssembliesInfo = ProcessProject(teamCollection, buildDefinition, solutionFile, projectFile);
-                                solutionAssemblies.MergeWith(projectAssembliesInfo);
-                            }
-
-                        }
-                    }
-                }
+                Console.WriteLine("Warning! Circular references found!");
+                foreach (var circularReference in circularReferences)
+                    Console.WriteLine(String.Join("->", circularReference));
             }
-            catch (Exception ex)
+            else
             {
-                Console.WriteLine("Could not process solution '{0}'. {1}", solutionFile, ex.Message);
+                Console.WriteLine("No circular references found between solutions");
             }
-
-            if (_options.Verbose)
-                Console.WriteLine();
-
-            return solutionAssemblies;
         }
 
-        private static AssembliesInfo ProcessProject(TfsTeamProjectCollection teamCollection, IBuildDefinition buildDefinition, string solutionFile, string projectFile)
+        private static void PrintStartAndEndNodes(IEnumerable<string> startNodes, IEnumerable<string> endNodes)
         {
-            if (_options.Verbose)
-                Console.WriteLine("Project: '{0}'", projectFile);
-
-            var projectAssemblies = new AssembliesInfo();
-            try
-            {
-
-                using (var projectFileStream = ReadFileFromServer(teamCollection, projectFile))
-                {
-                    using (var reader = System.Xml.XmlReader.Create(projectFileStream))
-                    {
-                        var project = new Project(reader);
-
-                        var assemblyName = project.Properties.FirstOrDefault(x => x.Name == "AssemblyName").EvaluatedValue;
-                        var isFrameworkAssembly = IsFrameworkAssembly(assemblyName);
-
-                        if (!isFrameworkAssembly)
-                            projectAssemblies.OwnAssemblies.Add(assemblyName);
-
-                        if(_options.Verbose)
-                            Console.WriteLine(assemblyName);
-
-                        var references =
-                            from item in project.Items
-                            where item.ItemType == "Reference"
-                            select item;
-
-                        foreach (var reference in references)
-                        {
-                            var include = reference.EvaluatedInclude;
-                            var includeAssemblyName = include.Split(',')[0];
-                            var isIncludeFrameworkAssembly = IsFrameworkAssembly(includeAssemblyName);
-                            if (!isFrameworkAssembly && !isIncludeFrameworkAssembly)
-                            {
-                                if (_options.Verbose)
-                                    Console.WriteLine("\treferences {0}", includeAssemblyName);
-                                projectAssemblies.ReferencedAssemblies.Add(includeAssemblyName);
-                            }
-                            ProcessInclude(teamCollection, buildDefinition, solutionFile, projectFile, include);
-                        }
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine("Could not process project '{0}'. {1}", projectFile, ex.Message);
-            }
-            if (_options.Verbose)
-                Console.WriteLine();
-
-            return projectAssemblies;
-        }
-
-        private static void ProcessInclude(TfsTeamProjectCollection teamCollection, IBuildDefinition buildDefinition, string solutionFile, string projectFile, string include)
-        {
-            if(_options.Verbose)
-                Console.WriteLine("Include: '{0}'", include);
-        }
-
-        private static Stream ReadFileFromServer(TfsTeamProjectCollection teamCollection, string projectFile)
-        {
-            var versionControlServer = (VersionControlServer)teamCollection.GetService(typeof(VersionControlServer));
-            var item = versionControlServer.GetItem(projectFile);
-            string tempFileName = System.IO.Path.GetTempFileName();
-            return item.DownloadFile();
-
-        }
-
-
-        private static IEnumerable<IBuildDefinition> SearchBuildDefinitions(TfsTeamProjectCollection teamCollection)
-        {
-            var buildServer = teamCollection.GetService<IBuildServer>();
-            var commonStructureService = teamCollection.GetService<ICommonStructureService>();
-            var buildDefinitionResults = Helpers.QueryBuildDefinitions(commonStructureService, buildServer, buildName: "*.Main");
-
-            var buildDefinitions = new List<IBuildDefinition>();
-            foreach (var buildDefinitionResult in buildDefinitionResults)
-            {
-                if (buildDefinitionResult.Failures != null && buildDefinitionResult.Failures.Length > 0)
-                {
-                    // print out the errors
-                    foreach (var f in buildDefinitionResult.Failures)
-                    {
-                        Console.WriteLine(string.Format("{0}: {1}", f.Code, f.Message));
-                    }
-                }
-
-                // There still might be some definitions to modify in this result
-                buildDefinitions.AddRange(buildDefinitionResult.Definitions.Where(buildDefinition => buildDefinition != null && buildDefinition.QueueStatus == DefinitionQueueStatus.Enabled));
-
-            }
-            return buildDefinitions;
-        }
-
-        private static void FindCircularReferences(
-    Dictionary<string, HashSet<string>> solutionDependencies,
-    Dictionary<string, HashSet<string>> startNodes)
-        {
-            var processed = new HashSet<string>();
-            var processing = new Queue<string>();
-
+            Console.WriteLine("*** START NODES -- Nodes nobody depends upon (highest-level assemblies)");
             foreach (var node in startNodes)
-                ProcessNode(node.Key, solutionDependencies, ref processing, ref processed);
+                Console.WriteLine(node);
+            Console.WriteLine();
+            Console.WriteLine("*** FINAL NODES -- Nodes with no dependencies (low-level assemblies)");
+            foreach (var node in endNodes)
+                Console.WriteLine(node);
+            Console.WriteLine();
+        }
+
+        private static void PrintAssemblyData(Options options, TeamCollectionsAssembliesInfo assemblyData)
+        {
+            if (options.Verbose)
+                Console.WriteLine(assemblyData);
+            else
+                Console.WriteLine("{0} assemblies", assemblyData.OwnAssemblies().Count);
+        }
+
+        /// <summary>
+        /// This method transforms a solution (.sln) TFS path into a more human-readable
+        /// label suitable for a graph
+        /// </summary>
+        /// <param name="solutionRoute"></param>
+        /// <returns>Transformed label</returns>
+        private static string RenameLabel(string solutionRoute)
+        {
+            string strRegex = @"\$/([^/]+)/([^/]*)/(.*/)*(.*).sln";
+            Regex myRegex = new Regex(strRegex, RegexOptions.None);
+            var pieces = myRegex.Split(solutionRoute);
+            var sb = new StringBuilder();
+            sb.Append(pieces[1]); sb.Append("\\n");
+            sb.Append(pieces[pieces.Length - 2]);
+
+            return sb.ToString();
         }
 
         
-
-        private static Dictionary<string, HashSet<string>> FindStartNodes(Dictionary<string, HashSet<string>> solutionDependencies)
-        {
-            var startNodes = new Dictionary<string, HashSet<string>>(solutionDependencies);
-            var nodesToRemove = new List<string>();
-            foreach (var x in solutionDependencies)
-            {
-                foreach (var y in solutionDependencies)
-                {
-                    if (y.Value.Contains(x.Key))
-                        nodesToRemove.Add(x.Key);
-                }
-            }
-            foreach (var nodeToRemove in nodesToRemove)
-                startNodes.Remove(nodeToRemove);
-            return startNodes;
-        }
-
-        private static void ProcessNode(string node, Dictionary<string, HashSet<string>> solutionDependencies, ref Queue<string> processing, ref HashSet<string> processed)
-        {
-            processing.Enqueue(node);
-            foreach (var subnode in solutionDependencies[node])
-            {
-                if (processing.Contains(subnode))
-                {
-                    Console.WriteLine("Circular reference: {0}->{1}", String.Join("->", processing.ToArray()), subnode);
-                }
-                else
-                {
-                    if (!processed.Contains(subnode))
-                        ProcessNode(subnode, solutionDependencies, ref processing, ref processed);
-                }
-            }
-            processed.Add(processing.Dequeue());
-        }
-
-
-
-        private static BuildDefinitionsAssembliesInfo ProcessTeamCollection(TfsTeamProjectCollection teamCollection)
-        {
-            Console.WriteLine("Collection '{0}'", teamCollection.DisplayName.ToUpper());
-
-            var teamAssembliesInfo = new BuildDefinitionsAssembliesInfo();
-            var collectionsBuildDefinitions = SearchBuildDefinitions(teamCollection);
-            foreach (var collectionsBuildDefinition in collectionsBuildDefinitions)
-            {
-                var buildDefinitionAssembliesInfo = ProcessBuildDefinition(teamCollection, collectionsBuildDefinition);
-                teamAssembliesInfo.Add(collectionsBuildDefinition.Name, buildDefinitionAssembliesInfo);
-            }
-
-            Console.WriteLine();
-            return teamAssembliesInfo;
-        }
-
-        public static bool IsFrameworkAssembly(string assemblyName)
-        {
-            return assemblyName.StartsWith("System") || assemblyName.StartsWith("Microsoft") || assemblyName == "mscorlib";
-        }
 
     }
 }

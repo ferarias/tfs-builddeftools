@@ -6,7 +6,7 @@ namespace TfsBuildRelationships.Structures
     /// Key = Solution Name
     /// Value = Own and referenced assemblies for the solution
     /// </summary>
-    class SolutionsAssembliesInfo : Dictionary<string, AssembliesInfo>
+    public class SolutionsAssembliesInfo : Dictionary<string, AssembliesInfo>
     {
         public HashSet<string> OwnAssemblies()
         {

@@ -10,14 +10,17 @@ namespace TfsBuildRelationships
         [OptionArray('c', "collections", Required = true, HelpText = "Team Collections Uris.")]
         public string[] TeamCollections { get; set; }
 
+        [OptionArray('x', "excludebuilds", Required = false, DefaultValue = new string[] { }, HelpText = "A list of build definitions to be excluded from analysis.")]
+        public string[] ExcludedBuildDefinitions { get; set; }
+
         [Option('o', "out", Required = false, HelpText = "Output file.")]
         public string OutFile { get; set; }
 
         [Option('r', "reduction", Required = false, HelpText = "Enable transitive reduction on generated dependencies graph.")]
         public bool TransitiveReduction { get; set; }
 
-        [Option('x', "extracommands", Required = false, HelpText = "Graph extra commands to be included in DOT file.")]
-        public string Extracommands { get; set; }
+        [Option('g', "graphextracommands", Required = false, HelpText = "Graph extra commands to be included in DOT file.")]
+        public string GraphExtracommands { get; set; }
 
         [Option('v', "verbose", Required = false, DefaultValue = false, HelpText = "Verbose output.")]
         public bool Verbose { get; set; }

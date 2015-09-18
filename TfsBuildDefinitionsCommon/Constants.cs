@@ -28,5 +28,7 @@
         public const string ResourcesMainBuildsNameExtension = ".Resources.Main";
         public const string ResourcesReleaseBuildsNameExtension = ".Resources.Release";
         public const string ReleaseFolder = "Release";
+
+        public const string ProjectsToBuildParamName = "ProjectsToBuild";
     }
 }

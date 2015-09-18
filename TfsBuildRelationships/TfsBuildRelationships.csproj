@@ -55,6 +55,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="CircularReferencesHelper.cs" />
     <Compile Include="Structures\BuildDefinitionsAssembliesInfo.cs" />
     <Compile Include="Structures\SolutionsAssembliesInfo.cs" />
     <Compile Include="DependencyGraph.cs" />
@@ -65,6 +66,7 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Solution.cs" />
     <Compile Include="Structures\TeamCollectionsAssembliesInfo.cs" />
+    <Compile Include="TfsBuildsParser.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

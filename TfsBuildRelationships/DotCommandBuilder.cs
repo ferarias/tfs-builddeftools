@@ -11,19 +11,19 @@ namespace TfsBuildRelationships
     /// </summary>
     public sealed class DotCommandBuilder
     {
-        public string GenerateDotCommand(DependencyGraph<string> graph)
-        {
-            return GenerateDotCommand(graph, string.Empty);
-        }
+        public Func<string, string> ProcessLabel { get; set; }
 
-        public string GenerateDotCommand(DependencyGraph<string> graph, string extraCommands)
+        public string GenerateDotCommand(DependencyGraph<string> graph, List<List<string>> circularReferences, string extraCommands)
         {
-            var nodes = graph.GetNodes();
-
-            // TODO can this first loop be replaced with LINQ, maybe with a zip?
+            var allNodes = graph.GetNodes();
+            var circularReferenceInvolvedNodes = new List<string>();
+            foreach (var circularReference in circularReferences)
+                circularReferenceInvolvedNodes.AddRange(circularReference);
+            var startNodes = allNodes.Where(x => !allNodes.Any(y => graph.GetDependenciesForNode(y).Contains(x)));
+            var endNodes = allNodes.Where(x => graph.GetDependenciesForNode(x).Count() == 0);
             var idsByNameMap = new Dictionary<string, int>();
             var id = 1;
-            foreach (var nodeName in nodes)
+            foreach (var nodeName in allNodes)
             {
                 idsByNameMap.Add(nodeName, id);
                 id++;
@@ -38,17 +38,54 @@ namespace TfsBuildRelationships
                 commandText.AppendFormat("\t{0}", extraCommands.Trim());
                 commandText.AppendLine();
             }
+            commandText.AppendLine("\t// Start nodes");
+            commandText.AppendFormat("\t{{ rank = same; {0} }} ", String.Join(";", startNodes.Select(x => idsByNameMap[x])));
+            commandText.AppendLine();
+            commandText.AppendLine("\t// End nodes");
+            commandText.AppendFormat("\t{{ rank = same; {0} }} ", String.Join(";", endNodes.Select(x => idsByNameMap[x])));
+            commandText.AppendLine();
 
+            commandText.AppendLine("\t// Node relationship");
             var nodeLabels = new StringBuilder();
-
-            foreach (var dependant in nodes)
+            foreach (var node in allNodes)
             {
-                var dependantId = idsByNameMap[dependant];
-                // 1 [label="SampleProject",shape=circle,hight=0.12,width=0.12,fontsize=1];
-                nodeLabels.AppendFormat("\t{0} [shape=box,fontsize=8,label=\"{1}\"];\r\n", dependantId, dependant);
-                commandText.AppendFormat("\t{0} -> {{ {1} }} ", dependantId, String.Join(";", graph.GetDependenciesForNode(dependant).Select(x=>idsByNameMap[x])));
-                commandText.AppendLine();
+                var isCircularRefNode = circularReferenceInvolvedNodes.Contains(node);
+
+                var style = new StringBuilder();
+                if (startNodes.Contains(node) || endNodes.Contains(node))
+                    style.Append("shape=ellipse");
+                else
+                    style.Append("shape=box");
+
+                if (isCircularRefNode)
+                    style.Append(",color=red,style=filled");
+                else
+                    if (startNodes.Contains(node))
+                        style.Append(",color=lightblue,style=filled");
+                    else if (endNodes.Contains(node))
+                        style.Append(",color=green,style=filled");
+
+
+                var nodeId = idsByNameMap[node];
+                var nodeLabel = node;
+                if (ProcessLabel != null)
+                    nodeLabel = ProcessLabel(node);
+                nodeLabels.AppendFormat("\t{0} [{1},label=\"{2}\"];\r\n", nodeId, style, nodeLabel);
+                foreach (var dep in graph.GetDependenciesForNode(node))
+                {
+                    var isCircularRefDepNode = circularReferenceInvolvedNodes.Contains(dep);
+                    string edgeAttributes;
+                    if (isCircularRefNode && isCircularRefDepNode)
+                        edgeAttributes = "color=red,style=bold";
+                    else
+                        edgeAttributes = "color=black";
+                    commandText.AppendFormat("\t{0} -> {1} [{2}]; ", nodeId, idsByNameMap[dep], edgeAttributes);
+                    commandText.AppendLine();
+                }
+                
+                
             }
+            commandText.AppendLine("\t// Node labels");
             commandText.Append(nodeLabels.ToString());
             commandText.AppendLine("}");
 

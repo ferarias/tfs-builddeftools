@@ -8,7 +8,7 @@ namespace TfsBuildRelationships.Structures
     /// Key = build definition name
     /// Value = Assemblies information for each solution
     /// </summary>
-    class TeamCollectionsAssembliesInfo : Dictionary<string, BuildDefinitionsAssembliesInfo>
+    public class TeamCollectionsAssembliesInfo : Dictionary<string, BuildDefinitionsAssembliesInfo>
     {
         public HashSet<string> OwnAssemblies()
         {
