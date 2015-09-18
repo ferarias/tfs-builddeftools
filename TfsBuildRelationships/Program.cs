@@ -29,9 +29,10 @@ namespace TfsBuildRelationships
                 {
                     // Read and process collections, build definitions, solutions, projects and assemblies
                     var parser = new TfsBuildsParser();
-                    var assemblyData = parser.Process(options.TeamCollections, options.ExcludedBuildDefinitions, options.Verbose);
-                    PrintAssemblyData(options, assemblyData);
+                    var assemblyData = parser.Process(options.TeamCollections, options.TeamProjects, options.ExcludedBuildDefinitions, options.Verbose);
+                    PrintAssemblyData(assemblyData, options.Verbose);
 
+                    // Build a dependency graph based on the assembly data
                     var graph = assemblyData.GetSolutionDependencies();
                     var graphNodes = graph.GetNodes();
 
@@ -42,10 +43,10 @@ namespace TfsBuildRelationships
 
                     // Find circular references between solutions
                     var circularReferences = CircularReferencesHelper.FindCircularReferences(graph, startNodes, endNodes);
-                    PrintCircularReferences(circularReferences);
+                    PrintCircularReferences(circularReferences, options.Verbose);
 
                     // Export dependencies graph
-                    ExportDependencyGraph(options, graph, circularReferences);
+                    ExportDependencyGraph(options.OutFile, graph, options.TransitiveReduction, circularReferences, options.GraphExtracommands);
 
                 }
                 catch (Exception ex)
@@ -64,17 +65,18 @@ namespace TfsBuildRelationships
 
         }
 
-        private static void ExportDependencyGraph(Options options, DependencyGraph<string> graph, List<List<string>> circularReferences)
+        private static void ExportDependencyGraph(string fileName, DependencyGraph<string> graph, bool transitiveReduction, List<List<string>> circularReferences, string graphExtraCommands)
         {
             try
             {
-                if (circularReferences.Count() == 0 && options.TransitiveReduction)
+                if (circularReferences.Count() == 0 && transitiveReduction)
                     graph.TransitiveReduction();
                 var dotCommandBuilder = new DotCommandBuilder();
                 dotCommandBuilder.ProcessLabel = new Func<string, string>(x => RenameLabel(x));
-                var dotCommand = dotCommandBuilder.GenerateDotCommand(graph, circularReferences, options.GraphExtracommands);
-                File.WriteAllText(options.OutFile, dotCommand, Encoding.ASCII);
-                Console.WriteLine("Graph exported to '{0}'", System.IO.Path.GetFullPath(options.OutFile));
+                var dotCommand = dotCommandBuilder.GenerateDotCommand(graph, circularReferences, graphExtraCommands);
+                File.WriteAllText(fileName, dotCommand, Encoding.ASCII);
+                
+                Console.WriteLine("Graph exported to '{0}'", System.IO.Path.GetFullPath(fileName));
             }
             catch (Exception ex)
             {
@@ -82,13 +84,22 @@ namespace TfsBuildRelationships
             }
         }
 
-        private static void PrintCircularReferences(List<List<string>> circularReferences)
+        private static void PrintCircularReferences(List<List<string>> circularReferences, bool verbose = false)
         {
             if (circularReferences.Count > 0)
             {
                 Console.WriteLine("Warning! Circular references found!");
-                foreach (var circularReference in circularReferences)
-                    Console.WriteLine(String.Join("->", circularReference));
+                if (verbose)
+                {
+                    foreach (var circularReference in circularReferences)
+                    {
+                        foreach (var item in circularReference)
+                        {
+                            Console.Write("{0} ->", item);
+                        }
+                        Console.WriteLine("...");
+                    }
+                }
             }
             else
             {
@@ -100,17 +111,17 @@ namespace TfsBuildRelationships
         {
             Console.WriteLine("*** START NODES -- Nodes nobody depends upon (highest-level assemblies)");
             foreach (var node in startNodes)
-                Console.WriteLine(node);
+                Console.WriteLine("\t{0}", node);
             Console.WriteLine();
             Console.WriteLine("*** FINAL NODES -- Nodes with no dependencies (low-level assemblies)");
             foreach (var node in endNodes)
-                Console.WriteLine(node);
+                Console.WriteLine("\t{0}", node);
             Console.WriteLine();
         }
 
-        private static void PrintAssemblyData(Options options, TeamCollectionsAssembliesInfo assemblyData)
+        private static void PrintAssemblyData(TeamCollectionsAssembliesInfo assemblyData, bool verbose = false)
         {
-            if (options.Verbose)
+            if (verbose)
                 Console.WriteLine(assemblyData);
             else
                 Console.WriteLine("{0} assemblies", assemblyData.OwnAssemblies().Count);

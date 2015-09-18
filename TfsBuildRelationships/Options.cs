@@ -10,10 +10,13 @@ namespace TfsBuildRelationships
         [OptionArray('c', "collections", Required = true, HelpText = "Team Collections Uris.")]
         public string[] TeamCollections { get; set; }
 
+        [OptionArray('p', "projects", Required = false, DefaultValue = new string[] { }, HelpText = "Team projects. If not set, builds from all projects will be chosen.")]
+        public string[] TeamProjects { get; set; }
+
         [OptionArray('x', "excludebuilds", Required = false, DefaultValue = new string[] { }, HelpText = "A list of build definitions to be excluded from analysis.")]
         public string[] ExcludedBuildDefinitions { get; set; }
 
-        [Option('o', "out", Required = false, HelpText = "Output file.")]
+        [Option('o', "out", Required = true, HelpText = "Output Graphviz DOT file.")]
         public string OutFile { get; set; }
 
         [Option('r', "reduction", Required = false, HelpText = "Enable transitive reduction on generated dependencies graph.")]
@@ -37,6 +40,7 @@ namespace TfsBuildRelationships
             };
             help.AddPreOptionsLine("License: As is");
             help.AddPreOptionsLine("Usage: TfsBuildRelationships.exe -c http://logpmtfs01v:8080/tfs/Logitravel http://logpmtfs01v:8080/tfs/Sales [options]");
+            help.AddPreOptionsLine("Example: TfsBuildRelationships.exe -c http://logpmtfs01v:8080/tfs/Logitravel -o Logitravel.dot -x Toolfactory.Framework.Main DeviceDetection.Main Toolfactory.Web.Main CommonCommon.Main Common.Main -g \"size=\"\"8.267,11.692\"\"; ratio=auto;rankdir=LR;node[fontsize=24];\"");
             help.AddOptions(this);
             return help;
         }

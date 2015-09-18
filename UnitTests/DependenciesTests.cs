@@ -63,19 +63,35 @@ namespace UnitTests
         public void CircularReferences3()
         {
             var dependencies = new DependencyGraph<string>();
-            dependencies.AddDependency("A", "B");
-            dependencies.AddDependency("B", "C");
-            dependencies.AddDependency("C", "D");
-            dependencies.AddDependency("B", "A");
-            dependencies.AddDependency("C", "B");
-            dependencies.AddDependency("D", "D");
+            dependencies.AddDependency("1", "2");
+            dependencies.AddDependency("1", "3");
+            dependencies.AddDependency("3", "2");
+            dependencies.AddDependency("3", "10");
+            dependencies.AddDependency("3", "1");
+            dependencies.AddDependency("4", "2");
+            
+            dependencies.AddDependency("4", "3");
+            dependencies.AddDependency("4", "1");
+            dependencies.AddDependency("5", "3");
+            dependencies.AddDependency("5", "2");
+            dependencies.AddDependency("6", "2");
+            dependencies.AddDependency("7", "2");
+            dependencies.AddDependency("8", "2");
+            dependencies.AddDependency("8", "8");
+            dependencies.AddDependency("9", "2");
+            dependencies.AddDependency("9", "3");
+            dependencies.AddDependency("10", "2");
+            dependencies.AddDependency("11", "2");
+            dependencies.AddDependency("12", "2");
 
             var allNodes = dependencies.GetNodes();
             var startNodes = allNodes.Where(x => !allNodes.Any(y => dependencies.GetDependenciesForNode(y).Contains(x)));
             var endNodes = allNodes.Where(x => dependencies.GetDependenciesForNode(x).Count() == 0);
 
             var circularReferences = CircularReferencesHelper.FindCircularReferences(dependencies, startNodes, endNodes);
-            Assert.IsTrue(circularReferences.Count() > 0);
+            Assert.IsTrue(circularReferences.Count() == 1);
+            Assert.IsTrue(circularReferences[0][0] == "1");
+            Assert.IsTrue(circularReferences[0][1] == "");
 
 
         }

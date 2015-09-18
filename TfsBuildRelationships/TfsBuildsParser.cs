@@ -20,7 +20,7 @@ namespace TfsBuildRelationships
 
         public static bool Verbose { get; set; }
 
-        public TeamCollectionsAssembliesInfo Process(string[] teamCollections, IEnumerable<string> excludeBuildDefinitions, bool verbose = false)
+        public TeamCollectionsAssembliesInfo Process(string[] teamCollections, string[] teamProjects, IEnumerable<string> excludeBuildDefinitions, bool verbose = false)
         {
             TfsBuildsParser.Verbose = verbose;
             var assemblyData = new TeamCollectionsAssembliesInfo();
@@ -30,7 +30,9 @@ namespace TfsBuildRelationships
                 var tfsTeamProjectCollection = TfsTeamProjectCollectionFactory.GetTeamProjectCollection(new Uri(teamCollection));
                 Console.WriteLine("Collection '{0}'", tfsTeamProjectCollection.DisplayName);
                 var buildDefinitionsAssembliesInfo = new BuildDefinitionsAssembliesInfo();
-                var collectionBuildDefinitions = SearchBuildDefinitions(tfsTeamProjectCollection);
+                var collectionBuildDefinitions = SearchBuildDefinitions(tfsTeamProjectCollection, "*.Main");
+                if (teamProjects.Count() > 0)
+                    collectionBuildDefinitions = collectionBuildDefinitions.Where(x => teamProjects.Contains(x.TeamProject));
                 foreach (var collectionBuildDefinition in collectionBuildDefinitions.Where(x => !excludeBuildDefinitions.Contains(x.Name)))
                 {
                     var buildDefinitionAssembliesInfo = ProcessBuildDefinition(tfsTeamProjectCollection, collectionBuildDefinition);
@@ -56,7 +58,7 @@ namespace TfsBuildRelationships
                 //var sharedAssemblies = (string)paramValues[SharedAssembliesParamName];
 
                 if (!paramValues.ContainsKey(Constants.ProjectsToBuildParamName))
-                    Console.WriteLine("Build definition '{0}' does not compile any project.", buildDefinition.Name);
+                    if (Verbose) Console.WriteLine("Build definition '{0}' does not compile any project.", buildDefinition.Name);
                 else
                 {
                     var projectsToBuild = (string[])paramValues[Constants.ProjectsToBuildParamName];
@@ -190,11 +192,11 @@ namespace TfsBuildRelationships
             return item.DownloadFile();
         }
 
-        private static IEnumerable<IBuildDefinition> SearchBuildDefinitions(TfsTeamProjectCollection teamCollection)
+        private static IEnumerable<IBuildDefinition> SearchBuildDefinitions(TfsTeamProjectCollection teamCollection, string buildNameFilter)
         {
             var buildServer = teamCollection.GetService<IBuildServer>();
             var commonStructureService = teamCollection.GetService<ICommonStructureService>();
-            var buildDefinitionResults = Helpers.QueryBuildDefinitions(commonStructureService, buildServer, buildName: "*.Main");
+            var buildDefinitionResults = Helpers.QueryBuildDefinitions(commonStructureService, buildServer, buildName: buildNameFilter);
 
             var buildDefinitions = new List<IBuildDefinition>();
             foreach (var buildDefinitionResult in buildDefinitionResults)

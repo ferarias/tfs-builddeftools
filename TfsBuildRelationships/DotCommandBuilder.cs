@@ -11,6 +11,9 @@ namespace TfsBuildRelationships
     /// </summary>
     public sealed class DotCommandBuilder
     {
+        /// <summary>
+        /// Method that allows the transformation of labels for the graph
+        /// </summary>
         public Func<string, string> ProcessLabel { get; set; }
 
         public string GenerateDotCommand(DependencyGraph<string> graph, List<List<string>> circularReferences, string extraCommands)
@@ -81,13 +84,24 @@ namespace TfsBuildRelationships
                         edgeAttributes = "color=black";
                     commandText.AppendFormat("\t{0} -> {1} [{2}]; ", nodeId, idsByNameMap[dep], edgeAttributes);
                     commandText.AppendLine();
-                }
-                
-                
+                } 
             }
             commandText.AppendLine("\t// Node labels");
             commandText.Append(nodeLabels.ToString());
             commandText.AppendLine("}");
+
+
+            commandText.AppendLine("\t// Circular references");
+            foreach (var circularReference in circularReferences)
+            {
+                commandText.Append("\t// ");
+                foreach (var item in circularReference)
+                {
+                    commandText.AppendFormat("{0} ->", ProcessLabel(item));
+                }
+                commandText.AppendLine("...");
+            }
+            
 
             return commandText.ToString();
         }
