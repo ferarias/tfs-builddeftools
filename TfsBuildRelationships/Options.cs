@@ -16,10 +16,13 @@ namespace TfsBuildRelationships
         [OptionArray('x', "excludebuilds", Required = false, DefaultValue = new string[] { }, HelpText = "A list of build definitions to be excluded from analysis.")]
         public string[] ExcludedBuildDefinitions { get; set; }
 
-        [Option('o', "out", Required = true, HelpText = "Output Graphviz DOT file.")]
+        [Option('m', "mode", Required = false, DefaultValue = "project", HelpText = "project|solution")]
+        public string Mode { get; set; }
+
+        [Option('o', "out", Required = true, HelpText = "Output name for log and Graphviz DOT file.")]
         public string OutFile { get; set; }
 
-        [Option('r', "reduction", Required = false, HelpText = "Enable transitive reduction on generated dependencies graph.")]
+        [Option('r', "graphreduction", Required = false, HelpText = "Enable transitive reduction on generated dependencies graph.")]
         public bool TransitiveReduction { get; set; }
 
         [Option('g', "graphextracommands", Required = false, HelpText = "Graph extra commands to be included in DOT file.")]

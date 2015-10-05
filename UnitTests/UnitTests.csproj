@@ -35,7 +35,13 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="Microsoft.TeamFoundation.Build.Client, Version=12.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL" />
+    <Reference Include="Microsoft.TeamFoundation.Build.Common, Version=12.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL" />
+    <Reference Include="Microsoft.TeamFoundation.Build.Workflow, Version=12.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL" />
+    <Reference Include="Microsoft.TeamFoundation.Client, Version=12.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL" />
+    <Reference Include="Microsoft.TeamFoundation.Common, Version=12.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL" />
     <Reference Include="System" />
+    <Reference Include="System.Data.Linq" />
   </ItemGroup>
   <Choose>
     <When Condition="('$(VisualStudioVersion)' == '10.0' or '$(VisualStudioVersion)' == '') and '$(TargetFrameworkVersion)' == 'v3.5'">
@@ -52,8 +58,13 @@
   <ItemGroup>
     <Compile Include="DependenciesTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="GraphTests.cs" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\TfsBuildDefinitionsCommon\TfsBuildDefinitionsCommon.csproj">
+      <Project>{f064c24c-76d9-4b7b-b95a-85aa70f99196}</Project>
+      <Name>TfsBuildDefinitionsCommon</Name>
+    </ProjectReference>
     <ProjectReference Include="..\TfsBuildRelationships\TfsBuildRelationships.csproj">
       <Project>{446569f7-d4dd-4350-b827-2a4b972837e6}</Project>
       <Name>TfsBuildRelationships</Name>

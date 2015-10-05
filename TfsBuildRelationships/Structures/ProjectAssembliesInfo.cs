@@ -2,27 +2,25 @@
 
 namespace TfsBuildRelationships.Structures
 {
-    public class AssembliesInfo
+    public class ProjectAssembliesInfo
     {
         /// <summary>
         /// Own assemblies
         /// </summary>
-        public HashSet<string> OwnAssemblies { get; set; }
+        public string GeneratedAssembly { get; set; }
 
         /// <summary>
         /// Referenced Assemblies
         /// </summary>
         public HashSet<string> ReferencedAssemblies { get; set; }
 
-        public AssembliesInfo()
+        public ProjectAssembliesInfo()
         {
-            OwnAssemblies = new HashSet<string>();
             ReferencedAssemblies = new HashSet<string>();
         }
 
-        public void MergeWith(AssembliesInfo other)
+        public void MergeWith(ProjectAssembliesInfo other)
         {
-            OwnAssemblies.UnionWith(other.OwnAssemblies);
             ReferencedAssemblies.UnionWith(other.ReferencedAssemblies);
         }
 

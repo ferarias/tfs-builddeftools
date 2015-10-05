@@ -24,7 +24,7 @@ namespace UnitTests
             dependencies.AddDependency("G", "H");
             dependencies.AddDependency("G", "A");
 
-            var allNodes = dependencies.GetNodes();
+            var allNodes = dependencies.Nodes;
             var startNodes = allNodes.Where(x => !allNodes.Any(y => dependencies.GetDependenciesForNode(y).Contains(x)));
             var endNodes = allNodes.Where(x => dependencies.GetDependenciesForNode(x).Count() == 0);
 
@@ -49,7 +49,7 @@ namespace UnitTests
             var dependencies = new DependencyGraph<string>();
             dependencies.AddDependency("A", "A");
 
-            var allNodes = dependencies.GetNodes();
+            var allNodes = dependencies.Nodes;
             var startNodes = allNodes.Where(x => !allNodes.Any(y => dependencies.GetDependenciesForNode(y).Contains(x)));
             var endNodes = allNodes.Where(x => dependencies.GetDependenciesForNode(x).Count() == 0);
 
@@ -84,7 +84,7 @@ namespace UnitTests
             dependencies.AddDependency("11", "2");
             dependencies.AddDependency("12", "2");
 
-            var allNodes = dependencies.GetNodes();
+            var allNodes = dependencies.Nodes;
             var startNodes = allNodes.Where(x => !allNodes.Any(y => dependencies.GetDependenciesForNode(y).Contains(x)));
             var endNodes = allNodes.Where(x => dependencies.GetDependenciesForNode(x).Count() == 0);
 

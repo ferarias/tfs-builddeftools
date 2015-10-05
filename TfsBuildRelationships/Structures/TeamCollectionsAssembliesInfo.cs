@@ -30,9 +30,9 @@ namespace TfsBuildRelationships.Structures
             return set;
         }
 
-        public Dictionary<string, AssembliesInfo> Flatten()
+        public Dictionary<string, TeamCollectionsAssembliesInfo> Flatten()
         {
-            var dic = new Dictionary<string, AssembliesInfo>();
+            var dic = new Dictionary<string, TeamCollectionsAssembliesInfo>();
             foreach (var tcAssInfo in this)
             {
                 foreach (var bdAss in tcAssInfo.Value)
@@ -61,7 +61,7 @@ namespace TfsBuildRelationships.Structures
             {
                 foreach(var reference in a.Value.ReferencedAssemblies)
                     foreach(var b in all)
-                        if(b.Value.OwnAssemblies.Contains(reference))
+                        if(b.Value.GeneratedAssembly.Contains(reference))
                             solutionDependencies.AddDependency(a.Key, b.Key);
             }
 
@@ -82,7 +82,7 @@ namespace TfsBuildRelationships.Structures
                     foreach (var solutionsAssembliesInfo in buildDefinitionAssembliesInfo.Value)
                     {
                         Console.WriteLine("\t\tSolution: '{0}'", solutionsAssembliesInfo.Key);
-                        Console.WriteLine("\t\t- Own: {0}", String.Join(",", solutionsAssembliesInfo.Value.OwnAssemblies));
+                        Console.WriteLine("\t\t- Own: {0}", String.Join(",", solutionsAssembliesInfo.Value.GeneratedAssembly));
                         Console.WriteLine("\t\t- Ref: {0}", String.Join(",", solutionsAssembliesInfo.Value.ReferencedAssemblies));
                     }
                 }

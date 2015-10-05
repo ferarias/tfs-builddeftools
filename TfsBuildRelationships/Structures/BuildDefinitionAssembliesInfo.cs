@@ -6,14 +6,14 @@ namespace TfsBuildRelationships.Structures
     /// Key = Solution Name
     /// Value = Own and referenced assemblies for the solution
     /// </summary>
-    public class SolutionsAssembliesInfo : Dictionary<string, AssembliesInfo>
+    public class BuildDefinitionAssembliesInfo : Dictionary<string, SolutionAssembliesInfo>
     {
         public HashSet<string> OwnAssemblies()
         {
             var set = new HashSet<string>();
             foreach (var assemblyInfo in this)
             {
-                set.UnionWith(assemblyInfo.Value.OwnAssemblies);
+                set.UnionWith(assemblyInfo.Value.GeneratedAssemblies);
             }
             return set;
         }

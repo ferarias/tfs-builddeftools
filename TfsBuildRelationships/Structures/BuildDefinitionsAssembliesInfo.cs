@@ -2,7 +2,7 @@
 
 namespace TfsBuildRelationships.Structures
 {
-    public class BuildDefinitionsAssembliesInfo : Dictionary<string, SolutionsAssembliesInfo>
+    public class BuildDefinitionsAssembliesInfo : Dictionary<string, BuildDefinitionAssembliesInfo>
     {
         public HashSet<string> OwnAssemblies()
         {

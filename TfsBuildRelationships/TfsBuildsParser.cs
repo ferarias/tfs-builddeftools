@@ -9,9 +9,10 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using TfsBuildDefinitionsCommon;
-using TfsBuildRelationships.Structures;
+using TfsBuildRelationships.AssemblyInfo;
 
 namespace TfsBuildRelationships
 {
@@ -20,37 +21,38 @@ namespace TfsBuildRelationships
 
         public static bool Verbose { get; set; }
 
-        public TeamCollectionsAssembliesInfo Process(string[] teamCollections, string[] teamProjects, IEnumerable<string> excludeBuildDefinitions, bool verbose = false)
+        public AssembliesInfo Process(string[] teamCollections, string[] teamProjects, IEnumerable<string> excludeBuildDefinitions, bool verbose = false)
         {
             TfsBuildsParser.Verbose = verbose;
-            var assemblyData = new TeamCollectionsAssembliesInfo();
+            var assembliesInfo = new AssembliesInfo();
             // Process each collection, build definition, solution, project and assembly
             foreach (var teamCollection in teamCollections)
             {
                 var tfsTeamProjectCollection = TfsTeamProjectCollectionFactory.GetTeamProjectCollection(new Uri(teamCollection));
                 Console.WriteLine("Collection '{0}'", tfsTeamProjectCollection.DisplayName);
-                var buildDefinitionsAssembliesInfo = new BuildDefinitionsAssembliesInfo();
-                var collectionBuildDefinitions = SearchBuildDefinitions(tfsTeamProjectCollection, "*.Main");
+
+                var teamCollectionInfo = new TeamCollectionInfo(tfsTeamProjectCollection);
+                var buildDefinitions = SearchBuildDefinitions(tfsTeamProjectCollection, "*.Main");
                 if (teamProjects.Count() > 0)
-                    collectionBuildDefinitions = collectionBuildDefinitions.Where(x => teamProjects.Contains(x.TeamProject));
-                foreach (var collectionBuildDefinition in collectionBuildDefinitions.Where(x => !excludeBuildDefinitions.Contains(x.Name)))
+                    buildDefinitions = buildDefinitions.Where(x => teamProjects.Contains(x.TeamProject));
+                foreach (var buildDefinition in buildDefinitions.Where(x => !excludeBuildDefinitions.Contains(x.Name)))
                 {
-                    var buildDefinitionAssembliesInfo = ProcessBuildDefinition(tfsTeamProjectCollection, collectionBuildDefinition);
-                    buildDefinitionsAssembliesInfo.Add(collectionBuildDefinition.Name, buildDefinitionAssembliesInfo);
+                    var buildDefinitionAssembliesInfo = ProcessBuildDefinition(teamCollectionInfo, buildDefinition);
+                    teamCollectionInfo.BuildDefinitions.Add(buildDefinitionAssembliesInfo);
                 }
 
                 Console.WriteLine();
-                assemblyData.Add(tfsTeamProjectCollection.DisplayName, buildDefinitionsAssembliesInfo);
+                assembliesInfo.TeamCollections.Add(teamCollectionInfo);
             }
-            return assemblyData;
+            return assembliesInfo;
         }
 
-        private static SolutionsAssembliesInfo ProcessBuildDefinition(TfsTeamProjectCollection teamCollection, IBuildDefinition buildDefinition)
+        private static BuildDefinitionInfo ProcessBuildDefinition(TeamCollectionInfo teamCollectionInfo, IBuildDefinition buildDefinition)
         {
             if (Verbose)
                 Console.WriteLine("Build definition: '{0}'", buildDefinition.Name);
 
-            var solutionsAssembliesInfo = new SolutionsAssembliesInfo();
+            var buildDefinitionInfo = new BuildDefinitionInfo(teamCollectionInfo, buildDefinition);
             try
             {
                 var paramValues = WorkflowHelpers.DeserializeProcessParameters(buildDefinition.ProcessParameters);
@@ -58,14 +60,15 @@ namespace TfsBuildRelationships
                 //var sharedAssemblies = (string)paramValues[SharedAssembliesParamName];
 
                 if (!paramValues.ContainsKey(Constants.ProjectsToBuildParamName))
-                    if (Verbose) Console.WriteLine("Build definition '{0}' does not compile any project.", buildDefinition.Name);
+                    Console.WriteLine("Build definition '{0}' does not compile any project.", buildDefinition.Name);
                 else
                 {
-                    var projectsToBuild = (string[])paramValues[Constants.ProjectsToBuildParamName];
-                    foreach (var solutionFile in projectsToBuild.Where(x => x.EndsWith(".sln")))
+                    var solutionFiles = (string[])paramValues[Constants.ProjectsToBuildParamName];
+                    foreach (var solutionFile in solutionFiles.Where(x => x.EndsWith(".sln")))
                     {
-                        var assembliesInfo = ProcessSolution(teamCollection, buildDefinition, solutionFile);
-                        solutionsAssembliesInfo.Add(solutionFile, assembliesInfo);
+                        var assembliesInfo = ProcessSolution(buildDefinitionInfo, solutionFile);
+                        buildDefinitionInfo.Solutions.Add(assembliesInfo);
+                        buildDefinitionInfo.ReferencedAssemblies.UnionWith(assembliesInfo.ReferencedAssemblies);
                     }
                 }
             }
@@ -77,20 +80,20 @@ namespace TfsBuildRelationships
             if (Verbose)
                 Console.WriteLine();
 
-            return solutionsAssembliesInfo;
+            return buildDefinitionInfo;
         }
 
-        private static AssembliesInfo ProcessSolution(TfsTeamProjectCollection teamCollection, IBuildDefinition buildDefinition, string solutionFile)
+        private static SolutionInfo ProcessSolution(BuildDefinitionInfo buildDefinitionInfo, string solutionFile)
         {
             if (Verbose)
                 Console.WriteLine("Solution: '{0}'", solutionFile);
 
-            var solutionAssemblies = new AssembliesInfo();
+            var solutionInfo = new SolutionInfo(buildDefinitionInfo, solutionFile);
 
             try
             {
 
-                using (var solutionFileStream = ReadFileFromVersionControlServer(teamCollection, solutionFile))
+                using (var solutionFileStream = ReadFileFromVersionControlServer(buildDefinitionInfo.TeamCollection.Collection, solutionFile))
                 {
                     using (StreamReader reader = new StreamReader(solutionFileStream))
                     {
@@ -99,18 +102,37 @@ namespace TfsBuildRelationships
                         var projects = solutionParser.Projects;
                         foreach (var solutionProject in projects)
                         {
-                            if (solutionProject.ProjectType != "SolutionFolder")
+                            if (solutionProject.ProjectType != "SolutionFolder" && 
+                                !Regex.Match(solutionProject.ProjectName, "Test", RegexOptions.IgnoreCase).Success)
                             {
                                 var projectDir = Path.GetDirectoryName(solutionFile);
                                 var fullPath = Path.Combine(projectDir, solutionProject.RelativePath);
                                 var projectFile = fullPath.Replace('\\', '/');
-                                var projectAssembliesInfo = ProcessProject(teamCollection, buildDefinition, solutionFile, projectFile);
-                                solutionAssemblies.MergeWith(projectAssembliesInfo);
+                                var projectAssembliesInfo = ProcessProject(solutionInfo, projectFile);
+                                solutionInfo.Projects.Add(projectAssembliesInfo);
+                                solutionInfo.ReferencedAssemblies.UnionWith(projectAssembliesInfo.ReferencedAssemblies);
                             }
 
                         }
                     }
                 }
+
+                // if there are references between projects, add them also
+                foreach (var project in solutionInfo.Projects)
+                {
+                    foreach (var referencedProject in project.ReferencedProjects)
+                    {
+                        var referenceMatches = solutionInfo[referencedProject];
+                        if (referenceMatches != null)
+                        {
+                            project.ReferencedAssemblies.Add(referenceMatches.GeneratedAssembly);
+                            solutionInfo.ReferencedAssemblies.UnionWith(project.ReferencedAssemblies);
+                        }
+
+                    }
+                }
+
+
             }
             catch (Exception ex)
             {
@@ -120,29 +142,34 @@ namespace TfsBuildRelationships
             if (Verbose)
                 Console.WriteLine();
 
-            return solutionAssemblies;
+            return solutionInfo;
         }
 
-        private static AssembliesInfo ProcessProject(TfsTeamProjectCollection teamCollection, IBuildDefinition buildDefinition, string solutionFile, string projectFile)
+        private static AssemblyInfo.ProjectInfo ProcessProject(SolutionInfo solutionInfo, string projectFile)
         {
             if (Verbose)
                 Console.WriteLine("Project: '{0}'", projectFile);
 
-            var projectAssemblies = new AssembliesInfo();
+            var projectInfo = new AssemblyInfo.ProjectInfo(solutionInfo);
             try
             {
 
-                using (var projectFileStream = ReadFileFromVersionControlServer(teamCollection, projectFile))
+                using (var projectFileStream = ReadFileFromVersionControlServer(solutionInfo.BuildDefinition.TeamCollection.Collection, projectFile))
                 {
                     using (var reader = System.Xml.XmlReader.Create(projectFileStream))
                     {
                         var project = new Project(reader, null, null, null, new ProjectCollection(), ProjectLoadSettings.IgnoreMissingImports);
 
                         var assemblyName = project.Properties.FirstOrDefault(x => x.Name == "AssemblyName").EvaluatedValue;
+                        var projectGuid = new Guid(project.Properties.FirstOrDefault(x => x.Name == "ProjectGuid").EvaluatedValue);
+
                         var isFrameworkAssembly = IsFrameworkAssembly(assemblyName);
 
                         if (!isFrameworkAssembly)
-                            projectAssemblies.OwnAssemblies.Add(assemblyName);
+                        {
+                            projectInfo.GeneratedAssembly = assemblyName;
+                            projectInfo.ProjectGuid = projectGuid;
+                        }
 
                         if (Verbose)
                             Console.WriteLine(assemblyName);
@@ -160,10 +187,23 @@ namespace TfsBuildRelationships
                             if (!isFrameworkAssembly && !isIncludeFrameworkAssembly)
                             {
                                 if (Verbose)
-                                    Console.WriteLine("\treferences {0}", includeAssemblyName);
-                                projectAssemblies.ReferencedAssemblies.Add(includeAssemblyName);
+                                    Console.WriteLine("\tReferences {0}", includeAssemblyName);
+                                projectInfo.ReferencedAssemblies.Add(includeAssemblyName);
                             }
-                            ProcessInclude(teamCollection, buildDefinition, solutionFile, projectFile, include);
+                            ProcessInclude(projectInfo, include);
+                        }
+
+                        var projectReferences =
+                            from item in project.Items
+                            where item.ItemType == "ProjectReference"
+                            select item;
+
+                        foreach (var projectReference in projectReferences)
+                        {
+                            if (Verbose)
+                                Console.WriteLine("\t references project '{0}'", projectReference);
+
+                            projectInfo.ReferencedProjects.Add(new Guid(projectReference.DirectMetadata.FirstOrDefault(x => x.Name == "Project").EvaluatedValue));
                         }
                     }
                 }
@@ -175,20 +215,20 @@ namespace TfsBuildRelationships
             if (Verbose)
                 Console.WriteLine();
 
-            return projectAssemblies;
+            return projectInfo;
         }
 
-        private static void ProcessInclude(TfsTeamProjectCollection teamCollection, IBuildDefinition buildDefinition, string solutionFile, string projectFile, string include)
+        private static void ProcessInclude(AssemblyInfo.ProjectInfo projectInfo, string include)
         {
             if (Verbose)
                 Console.WriteLine("Include: '{0}'", include);
         }
 
+        #region "Helpers"
         private static Stream ReadFileFromVersionControlServer(TfsTeamProjectCollection teamCollection, string projectFile)
         {
             var versionControlServer = (VersionControlServer)teamCollection.GetService(typeof(VersionControlServer));
             var item = versionControlServer.GetItem(projectFile);
-            string tempFileName = System.IO.Path.GetTempFileName();
             return item.DownloadFile();
         }
 
@@ -221,7 +261,7 @@ namespace TfsBuildRelationships
         {
             return assemblyName.StartsWith("System") || assemblyName.StartsWith("Microsoft") || assemblyName == "mscorlib";
         }
-
+        #endregion
 
     }
 }

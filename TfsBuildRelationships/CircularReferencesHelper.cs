@@ -19,28 +19,28 @@ namespace TfsBuildRelationships
         /// <param name="startNodes">A list of start nodes</param>
         /// <param name="endNodes">A list of final nodes</param>
         /// <returns></returns>
-        public static List<List<string>> FindCircularReferences(DependencyGraph<string> dependencies, IEnumerable<string> startNodes, IEnumerable<string> endNodes)
+        public static List<List<T>> FindCircularReferences<T>(DependencyGraph<T> dependencies, IEnumerable<T> startNodes, IEnumerable<T> endNodes) where T:IComparable
         {
-            var processed = new HashSet<string>(endNodes);
-            var processing = new Stack<string>();
-            var circularReferences = new List<List<string>>();
+            var processed = new HashSet<T>(endNodes);
+            var processing = new Stack<T>();
+            var circularReferences = new List<List<T>>();
 
-            if (startNodes.Count() == 0 && endNodes.Count() == 0 && dependencies.GetNodes().Count() > 0)
+            if (startNodes.Count() == 0 && endNodes.Count() == 0 && dependencies.Nodes.Count() > 0)
             {
                 // Probably, it's all a big cycle. Let's start with one
-                startNodes = new List<string>() { dependencies.GetNodes().First() };
+                startNodes = new List<T>() { dependencies.Nodes.First() };
             }
 
             // Start the search from each start node
-            foreach (var node in startNodes)
-                FindCircularReferencesForNode(node, dependencies, ref processing, ref processed, ref circularReferences);
+            foreach (T node in startNodes)
+                FindCircularReferencesForNode<T>(node, dependencies, ref processing, ref processed, ref circularReferences);
 
             // Remove items into circular references that don't belong to the cycle
             // E.g.: 1->2->3->2 becomes 2->3
             foreach (var referencesList in circularReferences)
             {
                 var lastItem = referencesList.Last();
-                var firstIndex = referencesList.FindIndex(x => x == lastItem);
+                var firstIndex = referencesList.FindIndex(x => x.Equals(lastItem));
                 referencesList.RemoveRange(0, firstIndex + 1);
             }
 
@@ -56,7 +56,7 @@ namespace TfsBuildRelationships
         /// <param name="processing">Stack of items currently traversed</param>
         /// <param name="processed">List of elements already processed</param>
         /// <param name="circularReferences">The list of circular references found until now.</param>
-        public static void FindCircularReferencesForNode(string node, DependencyGraph<string> dependencies, ref Stack<string> processing, ref HashSet<string> processed, ref List<List<string>> circularReferences)
+        public static void FindCircularReferencesForNode<T>(T node, DependencyGraph<T> dependencies, ref Stack<T> processing, ref HashSet<T> processed, ref List<List<T>> circularReferences)
         {
             // Add the node to the stack
             processing.Push(node);
@@ -66,7 +66,7 @@ namespace TfsBuildRelationships
                 {
                     // the subnode is into the stack: we found a cycle!
                     // Unroll the stack into a list and append the current subnode. 
-                    var circularReference = new List<string>(processing);
+                    var circularReference = new List<T>(processing);
                     circularReference.Reverse();
                     circularReference.Add(subnode);
                     // Add this to the list of circular references

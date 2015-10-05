@@ -3,34 +3,33 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using TfsBuildRelationships.GraphStructures;
 
 namespace TfsBuildRelationships
 {
     /// <summary>
     /// Builds a Dot command for a given dependency graph.
     /// </summary>
-    public sealed class DotCommandBuilder
+    public sealed class DotCommandBuilder<T> where T : TfsBuildRelationships.AssemblyInfo.IGraphNode, IComparable
     {
         /// <summary>
-        /// Method that allows the transformation of labels for the graph
+        /// This dictionary maps nodes to an integer so the DOT file is more compact. Every node is a simple number.
         /// </summary>
-        public Func<string, string> ProcessLabel { get; set; }
+        private Dictionary<T, int> NodeIdMap { get; set; }
 
-        public string GenerateDotCommand(DependencyGraph<string> graph, List<List<string>> circularReferences, string extraCommands)
+        public string GenerateDotCommand(DependencyGraph<T> graph, List<List<T>> circularReferences, string extraCommands)
         {
-            var allNodes = graph.GetNodes();
-            var circularReferenceInvolvedNodes = new List<string>();
-            foreach (var circularReference in circularReferences)
-                circularReferenceInvolvedNodes.AddRange(circularReference);
-            var startNodes = allNodes.Where(x => !allNodes.Any(y => graph.GetDependenciesForNode(y).Contains(x)));
-            var endNodes = allNodes.Where(x => graph.GetDependenciesForNode(x).Count() == 0);
-            var idsByNameMap = new Dictionary<string, int>();
-            var id = 1;
-            foreach (var nodeName in allNodes)
+            // Init
+            NodeIdMap = new Dictionary<T, int>();
+            var id = 0;
+            foreach (var nodeName in graph.Nodes)
             {
-                idsByNameMap.Add(nodeName, id);
-                id++;
+                NodeIdMap.Add(nodeName, id++);
             }
+
+
+            var graphStructure = PrepareGraph(graph, circularReferences);
+
 
             var commandText = new StringBuilder();
             commandText.AppendLine("digraph G {");
@@ -41,69 +40,129 @@ namespace TfsBuildRelationships
                 commandText.AppendFormat("\t{0}", extraCommands.Trim());
                 commandText.AppendLine();
             }
-            commandText.AppendLine("\t// Start nodes");
-            commandText.AppendFormat("\t{{ rank = same; {0} }} ", String.Join(";", startNodes.Select(x => idsByNameMap[x])));
-            commandText.AppendLine();
-            commandText.AppendLine("\t// End nodes");
-            commandText.AppendFormat("\t{{ rank = same; {0} }} ", String.Join(";", endNodes.Select(x => idsByNameMap[x])));
-            commandText.AppendLine();
 
-            commandText.AppendLine("\t// Node relationship");
-            var nodeLabels = new StringBuilder();
-            foreach (var node in allNodes)
+            // Ranks
+            commandText.AppendLine("\t// Node ranks");
+            for (int i = 0; i <= graphStructure.Nodes.Max(ni => ni.Value.Level); i++)
             {
-                var isCircularRefNode = circularReferenceInvolvedNodes.Contains(node);
-
-                var style = new StringBuilder();
-                if (startNodes.Contains(node) || endNodes.Contains(node))
-                    style.Append("shape=ellipse");
-                else
-                    style.Append("shape=box");
-
-                if (isCircularRefNode)
-                    style.Append(",color=red,style=filled");
-                else
-                    if (startNodes.Contains(node))
-                        style.Append(",color=lightblue,style=filled");
-                    else if (endNodes.Contains(node))
-                        style.Append(",color=green,style=filled");
-
-
-                var nodeId = idsByNameMap[node];
-                var nodeLabel = node;
-                if (ProcessLabel != null)
-                    nodeLabel = ProcessLabel(node);
-                nodeLabels.AppendFormat("\t{0} [{1},label=\"{2}\"];\r\n", nodeId, style, nodeLabel);
-                foreach (var dep in graph.GetDependenciesForNode(node))
-                {
-                    var isCircularRefDepNode = circularReferenceInvolvedNodes.Contains(dep);
-                    string edgeAttributes;
-                    if (isCircularRefNode && isCircularRefDepNode)
-                        edgeAttributes = "color=red,style=bold";
-                    else
-                        edgeAttributes = "color=black";
-                    commandText.AppendFormat("\t{0} -> {1} [{2}]; ", nodeId, idsByNameMap[dep], edgeAttributes);
-                    commandText.AppendLine();
-                } 
+                commandText.AppendFormat("\t{{ rank = same; {0} }}\r\n", String.Join(";", graphStructure.Nodes.Where(x => x.Value.Level == i).Select(y => y.Key)));
             }
+            commandText.AppendLine();
+
+            // Relationships
+            commandText.AppendLine("\t// Node relationship");
+            foreach (var relationship in graphStructure.Relationships)
+            {
+                var attributes = relationship.Value.Attributes;
+                commandText.AppendFormat("\t{0} -> {1} [{2}];\r\n", relationship.Key.Key, relationship.Key.Value, attributes);
+            }
+            commandText.AppendLine();
+
+            // Nodes
             commandText.AppendLine("\t// Node labels");
-            commandText.Append(nodeLabels.ToString());
+            foreach (var node in graphStructure.Nodes)
+            {
+                var attributes = node.Value.Attributes;
+                commandText.AppendFormat("\t{0} [{1},label=\"{0}\\n{2}\"];\r\n", node.Key, attributes, node.Value.Label);
+            }
+            commandText.AppendLine();
+
             commandText.AppendLine("}");
 
-
-            commandText.AppendLine("\t// Circular references");
-            foreach (var circularReference in circularReferences)
-            {
-                commandText.Append("\t// ");
-                foreach (var item in circularReference)
-                {
-                    commandText.AppendFormat("{0} ->", ProcessLabel(item));
-                }
-                commandText.AppendLine("...");
-            }
-            
-
             return commandText.ToString();
+
         }
+
+        private GraphStructure PrepareGraph(DependencyGraph<T> graph, List<List<T>> circularReferences)
+        {
+            var startNodes = graph.Nodes.Where(x => !graph.Nodes.Any(y => graph.GetDependenciesForNode(y).Contains(x))).Select(z => NodeIdMap[z]);
+            var endNodes = graph.Nodes.Where(x => graph.GetDependenciesForNode(x).Count() == 0).Select(z => NodeIdMap[z]);
+
+            var circularReferenceInvolvedNodes = new List<int>();
+            foreach (var circularReference in circularReferences)
+                foreach (var reference in circularReference)
+                    circularReferenceInvolvedNodes.Add(NodeIdMap[reference]);
+
+
+            var graphStructure = new GraphStructure();
+            var processing = new Queue<GraphNode>();
+
+            if (startNodes.Count() == 0 && endNodes.Count() == 0 && graph.Nodes.Count() > 0)
+                // Probably, it's all a big cycle. Let's start with any one
+                startNodes = new List<int>() { NodeIdMap[graph.Nodes.First()] };
+
+            // Start from each start node, giving them a level of 0
+            foreach (int nodeId in startNodes)
+                processing.Enqueue(new GraphNode() { Id = nodeId, Label = graph.Nodes.First(x => NodeIdMap[x] == nodeId).GetLabel(), Level = 0, Processed = false });
+
+            // While the stack is not empty
+            while (processing.Any())
+            {
+                var sourceGraphNode = processing.Peek();
+                var isCircularReferenceSourceNode = circularReferenceInvolvedNodes.Contains(sourceGraphNode.Id);
+                sourceGraphNode.Attributes = GetNodeStyle(sourceGraphNode, isCircularReferenceSourceNode, startNodes.Contains(sourceGraphNode.Id), endNodes.Contains(sourceGraphNode.Id));
+                graphStructure.Nodes.Add(sourceGraphNode.Id, sourceGraphNode);
+
+                var dependencyIds = graph.GetDependenciesForNode(graph.Nodes.First(gn => NodeIdMap[gn] == sourceGraphNode.Id)).Select(z=>NodeIdMap[z]);
+                foreach (var destId in dependencyIds)
+                {
+                    GraphNode destGraphNode;
+                    if (graphStructure.Nodes.ContainsKey(destId))
+                        destGraphNode = graphStructure.Nodes[destId];
+                    else if (processing.Any(n=>n.Id == destId))
+                        destGraphNode = processing.First(n=>n.Id == destId);
+                    else
+                        destGraphNode = new GraphNode() { Id = destId, Label = graph.Nodes.First(x => NodeIdMap[x] == destId).GetLabel(), Level = sourceGraphNode.Level + 1, Processed = false };
+                    var isCircularReferenceDestNode = circularReferenceInvolvedNodes.Contains(destGraphNode.Id);
+                    var relationship = new KeyValuePair<int, int>(sourceGraphNode.Id, destGraphNode.Id);
+                    graphStructure.Relationships.Add(relationship, new GraphEdge() { Attributes = GetEdgeStyle(relationship, isCircularReferenceSourceNode && isCircularReferenceDestNode) });
+
+                    if (destGraphNode.Level < sourceGraphNode.Level + 1) destGraphNode.Level = sourceGraphNode.Level + 1;
+
+                    if (!destGraphNode.Processed && !processing.Contains(destGraphNode))
+                    {
+                        processing.Enqueue(destGraphNode);
+                    }
+                    // this subnode should be downgraded to be below current node
+                    else if (graphStructure.Nodes.Any(n => n.Key == destGraphNode.Id && !n.Value.Processed))
+                        graphStructure.Nodes[destGraphNode.Id].Level = destGraphNode.Level;
+                }
+                var nd = processing.Dequeue();
+                nd.Processed = true;
+            }
+            return graphStructure;
+        }
+
+
+
+
+        private string GetNodeStyle(GraphNode node, bool isCircularRefNode, bool isSource, bool isSink)
+        {
+            var style = new StringBuilder();
+            if (isSource || isSink)
+                style.Append("shape=ellipse");
+            else
+                style.Append("shape=box");
+            if (isCircularRefNode)
+                style.Append(",color=red,style=filled");
+            else
+                if (isSource)
+                    style.Append(",color=lightblue,style=filled");
+                else if (isSink)
+                    style.Append(",color=green,style=filled");
+
+            return style.ToString();
+        }
+
+        private string GetEdgeStyle(KeyValuePair<int, int> edge, bool isCircularRefEdge)
+        {
+            var style = new StringBuilder();
+            if (isCircularRefEdge)
+                style.Append("color=red,style=bold");
+            else
+                style.Append("color=black");
+            return style.ToString();
+        }
+
     }
 }

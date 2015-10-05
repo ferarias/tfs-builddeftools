@@ -55,17 +55,21 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="AssemblyInfo\AssembliesInfo.cs" />
+    <Compile Include="AssemblyInfo\BuildDefinitionInfo.cs" />
+    <Compile Include="AssemblyInfo\IGraphNode.cs" />
+    <Compile Include="AssemblyInfo\ProjectInfo.cs" />
+    <Compile Include="AssemblyInfo\SolutionInfo.cs" />
+    <Compile Include="AssemblyInfo\TeamCollectionInfo.cs" />
     <Compile Include="CircularReferencesHelper.cs" />
-    <Compile Include="Structures\BuildDefinitionsAssembliesInfo.cs" />
-    <Compile Include="Structures\SolutionsAssembliesInfo.cs" />
     <Compile Include="DependencyGraph.cs" />
     <Compile Include="DotCommandBuilder.cs" />
+    <Compile Include="GraphStructures\GraphStructure.cs" />
+    <Compile Include="ItemWithLevel.cs" />
     <Compile Include="Options.cs" />
     <Compile Include="Program.cs" />
-    <Compile Include="Structures\AssembliesInfo.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Solution.cs" />
-    <Compile Include="Structures\TeamCollectionsAssembliesInfo.cs" />
     <Compile Include="TfsBuildsParser.cs" />
   </ItemGroup>
   <ItemGroup>

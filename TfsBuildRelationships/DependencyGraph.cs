@@ -11,7 +11,16 @@ namespace TfsBuildRelationships
     /// </summary>
     public sealed class DependencyGraph<T>
     {
-        private readonly HashSet<T> _nodes = new HashSet<T>();
+        public DependencyGraph()
+        {
+            Nodes = new HashSet<T>();
+        }
+        /// <summary>
+        /// Gets all nodes
+        /// </summary>
+        /// <returns>Enumeration of nodes</returns>
+        public HashSet<T> Nodes { get; set; }
+
         private readonly Dictionary<T, HashSet<T>> _dependenciesByNode = new Dictionary<T, HashSet<T>>();
 
         /// <summary>
@@ -22,8 +31,8 @@ namespace TfsBuildRelationships
         public void AddDependency(T dependant, T dependency)
         {
             // take note of these nodes
-            _nodes.Add(dependant);
-            _nodes.Add(dependency);
+            Nodes.Add(dependant);
+            Nodes.Add(dependency);
 
             // get the list of dependencies for this dependant (create if it doesn't exist yet)
             HashSet<T> dependencySet;
@@ -33,14 +42,8 @@ namespace TfsBuildRelationships
             dependencySet.Add(dependency);
         }
 
-        /// <summary>
-        /// Gets all nodes
-        /// </summary>
-        /// <returns>Enumeration of nodes</returns>
-        public IEnumerable<T> GetNodes()
-        {
-            return _nodes;
-        }
+        
+        
 
         /// <summary>
         /// Gets all the dependencies for a node
@@ -62,11 +65,11 @@ namespace TfsBuildRelationships
         /// </summary>
         public void TransitiveReduction()
         {
-            foreach (var x in _nodes)
+            foreach (var x in Nodes)
             {
-                foreach (var y in _nodes)
+                foreach (var y in Nodes)
                 {
-                    foreach (var z in _nodes)
+                    foreach (var z in Nodes)
                     {
                         if (GetDependenciesForNode(x).Contains(y) && GetDependenciesForNode(y).Contains(z))
                             _dependenciesByNode[x].Remove(z);

@@ -10,9 +10,8 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
-using System.Text.RegularExpressions;
 using TfsBuildDefinitionsCommon;
-using TfsBuildRelationships.Structures;
+using TfsBuildRelationships.AssemblyInfo;
 
 
 namespace TfsBuildRelationships
@@ -27,27 +26,69 @@ namespace TfsBuildRelationships
             {
                 try
                 {
+                    var logFileName = Path.Combine(Path.GetDirectoryName(options.OutFile), Path.GetFileNameWithoutExtension(options.OutFile) + ".log");
+                    var dotFileName = Path.Combine(Path.GetDirectoryName(options.OutFile), Path.GetFileNameWithoutExtension(options.OutFile) + ".dot");
+
                     // Read and process collections, build definitions, solutions, projects and assemblies
                     var parser = new TfsBuildsParser();
                     var assemblyData = parser.Process(options.TeamCollections, options.TeamProjects, options.ExcludedBuildDefinitions, options.Verbose);
-                    PrintAssemblyData(assemblyData, options.Verbose);
 
-                    // Build a dependency graph based on the assembly data
-                    var graph = assemblyData.GetSolutionDependencies();
-                    var graphNodes = graph.GetNodes();
+                    using (var outputFile = new StreamWriter(logFileName))
+                    {
 
-                    // Calculate start and end nodes
-                    var startNodes = graphNodes.Where(x => !graphNodes.Any(y => graph.GetDependenciesForNode(y).Contains(x)));
-                    var endNodes = graphNodes.Where(x => graph.GetDependenciesForNode(x).Count() == 0);
-                    PrintStartAndEndNodes(startNodes, endNodes);
+                        PrintAssemblyData(assemblyData, outputFile);
 
-                    // Find circular references between solutions
-                    var circularReferences = CircularReferencesHelper.FindCircularReferences(graph, startNodes, endNodes);
-                    PrintCircularReferences(circularReferences, options.Verbose);
+                        // Build a dependency graph based on the assembly data
+                        if (options.Mode == "solution")
+                        {
+                            var graph = assemblyData.GetSolutionsDependencies();
+                            var graphNodes = graph.Nodes;
+                            // Calculate start and end nodes
+                            var startNodes = graphNodes.Where(x => !graphNodes.Any(y => graph.GetDependenciesForNode(y).Contains(x)));
+                            var endNodes = graphNodes.Where(x => graph.GetDependenciesForNode(x).Count() == 0);
+                            PrintStartAndEndNodes(startNodes, endNodes, outputFile);
 
-                    // Export dependencies graph
-                    ExportDependencyGraph(options.OutFile, graph, options.TransitiveReduction, circularReferences, options.GraphExtracommands);
+                            // Find circular references between solutions
+                            var circularReferences = CircularReferencesHelper.FindCircularReferences(graph, startNodes, endNodes);
+                            PrintCircularReferences(circularReferences, outputFile);
 
+                            if(circularReferences.Count() == 0)
+                            {
+                                var sortedNodes = graphNodes.ToList();
+                                sortedNodes.Sort();
+                                PrintBuildOrder(sortedNodes, outputFile);
+                            }
+
+                            //// Export dependencies graph
+                            ExportDependencyGraph(dotFileName, graph, options.TransitiveReduction, circularReferences, options.GraphExtracommands);
+
+                        }
+                        else
+                        {
+                            var graph = assemblyData.GetProjectsDependencies();
+                            var graphNodes = graph.Nodes;
+                            // Calculate start and end nodes
+                            var startNodes = graphNodes.Where(x => !graphNodes.Any(y => graph.GetDependenciesForNode(y).Contains(x)));
+                            var endNodes = graphNodes.Where(x => graph.GetDependenciesForNode(x).Count() == 0);
+                            PrintStartAndEndNodes(startNodes, endNodes, outputFile);
+                            // Find circular references between solutions
+                            var circularReferences = CircularReferencesHelper.FindCircularReferences(graph, startNodes, endNodes);
+                            PrintCircularReferences(circularReferences, outputFile);
+
+                            if (circularReferences.Count() == 0)
+                            {
+                                var sortedNodes = graphNodes.ToList();
+                                sortedNodes.Sort();
+                                PrintBuildOrder(sortedNodes, outputFile);
+                            }
+
+                            //// Export dependencies graph
+                            ExportDependencyGraph(dotFileName, graph, options.TransitiveReduction, circularReferences, options.GraphExtracommands);
+
+                        }
+                        
+
+                    }
                 }
                 catch (Exception ex)
                 {
@@ -65,17 +106,17 @@ namespace TfsBuildRelationships
 
         }
 
-        private static void ExportDependencyGraph(string fileName, DependencyGraph<string> graph, bool transitiveReduction, List<List<string>> circularReferences, string graphExtraCommands)
+
+        private static void ExportDependencyGraph<T>(string fileName, DependencyGraph<T> graph, bool transitiveReduction, List<List<T>> circularReferences, string graphExtraCommands) where T : IGraphNode, IComparable
         {
             try
             {
                 if (circularReferences.Count() == 0 && transitiveReduction)
                     graph.TransitiveReduction();
-                var dotCommandBuilder = new DotCommandBuilder();
-                dotCommandBuilder.ProcessLabel = new Func<string, string>(x => RenameLabel(x));
+                var dotCommandBuilder = new DotCommandBuilder<T>();
                 var dotCommand = dotCommandBuilder.GenerateDotCommand(graph, circularReferences, graphExtraCommands);
                 File.WriteAllText(fileName, dotCommand, Encoding.ASCII);
-                
+
                 Console.WriteLine("Graph exported to '{0}'", System.IO.Path.GetFullPath(fileName));
             }
             catch (Exception ex)
@@ -84,68 +125,95 @@ namespace TfsBuildRelationships
             }
         }
 
-        private static void PrintCircularReferences(List<List<string>> circularReferences, bool verbose = false)
+        private static void PrintCircularReferences<T>(List<List<T>> circularReferences, StreamWriter outFile)
         {
+            outFile.WriteLine("CIRCULAR REFERENCES");
+            outFile.WriteLine("===================");
             if (circularReferences.Count > 0)
             {
-                Console.WriteLine("Warning! Circular references found!");
-                if (verbose)
+                outFile.WriteLine("Warning! Circular references found!");
+
+                foreach (var circularReference in circularReferences)
                 {
-                    foreach (var circularReference in circularReferences)
+                    foreach (var item in circularReference)
                     {
-                        foreach (var item in circularReference)
-                        {
-                            Console.Write("{0} ->", item);
-                        }
-                        Console.WriteLine("...");
+                        outFile.Write("{0} ->", item);
                     }
+                    outFile.WriteLine("¶");
                 }
+
             }
             else
             {
-                Console.WriteLine("No circular references found between solutions");
+                outFile.WriteLine("No circular references found.");
             }
+            outFile.WriteLine("*************");
+            outFile.WriteLine();
         }
 
-        private static void PrintStartAndEndNodes(IEnumerable<string> startNodes, IEnumerable<string> endNodes)
+        private static void PrintStartAndEndNodes<T>(IEnumerable<T> startNodes, IEnumerable<T> endNodes, StreamWriter outFile)
         {
-            Console.WriteLine("*** START NODES -- Nodes nobody depends upon (highest-level assemblies)");
+            outFile.WriteLine("START NODES");
+            outFile.WriteLine("===========");
+            outFile.WriteLine("Nodes nobody depends upon (highest-level assemblies)");
             foreach (var node in startNodes)
-                Console.WriteLine("\t{0}", node);
-            Console.WriteLine();
-            Console.WriteLine("*** FINAL NODES -- Nodes with no dependencies (low-level assemblies)");
+                outFile.WriteLine("\t{0}", node);
+            outFile.WriteLine();
+            outFile.WriteLine("FINAL NODES");
+            outFile.WriteLine("===========");
+            outFile.WriteLine("Nodes with no dependencies (low-level assemblies)");
             foreach (var node in endNodes)
-                Console.WriteLine("\t{0}", node);
-            Console.WriteLine();
+                outFile.WriteLine("\t{0}", node);
+            outFile.WriteLine("*************");
+            outFile.WriteLine();
         }
 
-        private static void PrintAssemblyData(TeamCollectionsAssembliesInfo assemblyData, bool verbose = false)
+        private static void PrintAssemblyData(AssembliesInfo assemblyData, StreamWriter outFile)
         {
-            if (verbose)
-                Console.WriteLine(assemblyData);
-            else
-                Console.WriteLine("{0} assemblies", assemblyData.OwnAssemblies().Count);
+            outFile.WriteLine("ASSEMBLY DATA");
+            outFile.WriteLine("=============");
+            foreach (var data in assemblyData.TeamCollections)
+            {
+                outFile.WriteLine(data);
+                foreach (var buildDefinitionInfo in data.BuildDefinitions)
+                {
+                    outFile.WriteLine(buildDefinitionInfo);
+                    outFile.WriteLine("{");
+                    foreach (var solutionData in buildDefinitionInfo.Solutions)
+                    {
+                        outFile.WriteLine("\t" + solutionData);
+                        outFile.WriteLine("\t{");
+                        foreach (var projectData in solutionData.Projects)
+                        {
+                            outFile.WriteLine("\t\t" + projectData);
+                            outFile.WriteLine("\t\t{");
+                            foreach (var referencedAssemblies in projectData.ReferencedAssemblies)
+                            {
+                                outFile.WriteLine("\t\t\t" + referencedAssemblies);
+                            }
+                            outFile.WriteLine("\t\t}");
+                        }
+                        outFile.WriteLine("\t}");
+                    }
+                    outFile.WriteLine("}");
+                }
+            }
+            outFile.WriteLine("*************");
+            outFile.WriteLine();
         }
 
-        /// <summary>
-        /// This method transforms a solution (.sln) TFS path into a more human-readable
-        /// label suitable for a graph
-        /// </summary>
-        /// <param name="solutionRoute"></param>
-        /// <returns>Transformed label</returns>
-        private static string RenameLabel(string solutionRoute)
+
+        private static void PrintBuildOrder<T>(IEnumerable<T> nodes, StreamWriter outFile)
         {
-            string strRegex = @"\$/([^/]+)/([^/]*)/(.*/)*(.*).sln";
-            Regex myRegex = new Regex(strRegex, RegexOptions.None);
-            var pieces = myRegex.Split(solutionRoute);
-            var sb = new StringBuilder();
-            sb.Append(pieces[1]); sb.Append("\\n");
-            sb.Append(pieces[pieces.Length - 2]);
-
-            return sb.ToString();
+            outFile.WriteLine("BUILD ORDER");
+            outFile.WriteLine("===========");
+            int i = 0;
+            foreach (var node in nodes)
+                outFile.WriteLine("{0}. {1}", ++i, node);
+            outFile.WriteLine("*************");
+            outFile.WriteLine();
         }
 
-        
 
     }
 }
