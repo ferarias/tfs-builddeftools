@@ -21,6 +21,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TfsBuildRelationships", "Tf
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UnitTests", "UnitTests\UnitTests.csproj", "{CCFEE26C-40FB-4426-8DA3-7D90697A6E12}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TargetFramework", "TargetFramework\TargetFramework.csproj", "{F205EA6F-672C-4A5D-901E-FBE16EC3441A}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -123,6 +125,16 @@ Global
 		{CCFEE26C-40FB-4426-8DA3-7D90697A6E12}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
 		{CCFEE26C-40FB-4426-8DA3-7D90697A6E12}.Release|Mixed Platforms.Build.0 = Release|Any CPU
 		{CCFEE26C-40FB-4426-8DA3-7D90697A6E12}.Release|x86.ActiveCfg = Release|Any CPU
+		{F205EA6F-672C-4A5D-901E-FBE16EC3441A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F205EA6F-672C-4A5D-901E-FBE16EC3441A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F205EA6F-672C-4A5D-901E-FBE16EC3441A}.Debug|Mixed Platforms.ActiveCfg = Debug|Any CPU
+		{F205EA6F-672C-4A5D-901E-FBE16EC3441A}.Debug|Mixed Platforms.Build.0 = Debug|Any CPU
+		{F205EA6F-672C-4A5D-901E-FBE16EC3441A}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{F205EA6F-672C-4A5D-901E-FBE16EC3441A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F205EA6F-672C-4A5D-901E-FBE16EC3441A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F205EA6F-672C-4A5D-901E-FBE16EC3441A}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
+		{F205EA6F-672C-4A5D-901E-FBE16EC3441A}.Release|Mixed Platforms.Build.0 = Release|Any CPU
+		{F205EA6F-672C-4A5D-901E-FBE16EC3441A}.Release|x86.ActiveCfg = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
