@@ -53,27 +53,32 @@ namespace TfsFindBuildAssemblies
                 var buildServer = collection.GetService<IBuildServer>();
                 var commonStructureService = collection.GetService<ICommonStructureService>();
 
-                Console.Write("Finding build definitions for collection '{0}'...", collection.DisplayName);
-                var buildDefinitionResults = Helpers.QueryBuildDefinitions(commonStructureService, buildServer, buildName: options.BuildName);
+                Console.WriteLine("Finding build definitions for collection '{0}'...", collection.DisplayName);
+                
 
                 var buildDefinitions = new List<IBuildDefinition>();
-                foreach (var buildDefinitionResult in buildDefinitionResults)
+                foreach(var bdName in options.BuildName)
                 {
-                    if (buildDefinitionResult.Failures != null && buildDefinitionResult.Failures.Length > 0)
+                    var buildDefinitionResults = Helpers.QueryBuildDefinitions(commonStructureService, buildServer, buildName: bdName);
+
+                    foreach (var buildDefinitionResult in buildDefinitionResults)
                     {
-                        // print out the errors
-                        foreach (var f in buildDefinitionResult.Failures)
+                        if (buildDefinitionResult.Failures != null && buildDefinitionResult.Failures.Length > 0)
                         {
-                            Console.WriteLine(string.Format("{0}: {1}", f.Code, f.Message));
+                            // print out the errors
+                            foreach (var f in buildDefinitionResult.Failures)
+                            {
+                                Console.WriteLine(string.Format("{0}: {1}", f.Code, f.Message));
+                            }
                         }
+
+                        // There still might be some definitions to modify in this result
+                        buildDefinitions.AddRange(buildDefinitionResult.Definitions.Where(buildDefinition => buildDefinition != null && buildDefinition.QueueStatus == DefinitionQueueStatus.Enabled));
+
                     }
-
-                    // There still might be some definitions to modify in this result
-                    buildDefinitions.AddRange(buildDefinitionResult.Definitions.Where(buildDefinition => buildDefinition != null && buildDefinition.QueueStatus == DefinitionQueueStatus.Enabled));
-
+                    Console.WriteLine("{0} found for '{1}'", buildDefinitions.Count, bdName);
                 }
                 collectionsBuildDefinitions.Add(collection.DisplayName, buildDefinitions);
-                Console.WriteLine("{0} found", buildDefinitions.Count);
             }
 
             _assembliesList = new HashSet<string>();

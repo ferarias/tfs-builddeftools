@@ -13,8 +13,8 @@ namespace TfsFindBuildAssemblies
         [Option('a', "assemblies", Required = true, HelpText = "Assemblies location.")]
         public string AssembliesLocation { get; set; }
 
-        [Option('b', "build", Required = false, HelpText = "Build definition name (wildcards accepted).")]
-        public string BuildName { get; set; }
+        [OptionArray('b', "build", Required = false, HelpText = "Build definition names (wildcards accepted).")]
+        public string[] BuildName { get; set; }
 
         [Option('o', "out", Required = false, HelpText = "Output file.")]
         public string OutFile { get; set; }
