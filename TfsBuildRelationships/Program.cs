@@ -1,16 +1,9 @@
 ﻿using CommandLine;
-using Microsoft.Build.Evaluation;
-using Microsoft.TeamFoundation.Build.Client;
-using Microsoft.TeamFoundation.Build.Workflow;
-using Microsoft.TeamFoundation.Client;
-using Microsoft.TeamFoundation.Server;
-using Microsoft.TeamFoundation.VersionControl.Client;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
-using TfsBuildDefinitionsCommon;
 using TfsBuildRelationships.AssemblyInfo;
 
 
@@ -26,26 +19,31 @@ namespace TfsBuildRelationships
             {
                 try
                 {
-                    var logFileName = Path.Combine(Path.GetDirectoryName(options.OutFile), Path.GetFileNameWithoutExtension(options.OutFile) + ".log");
-                    var dotFileName = Path.Combine(Path.GetDirectoryName(options.OutFile), Path.GetFileNameWithoutExtension(options.OutFile) + ".dot");
-
+                    var directoryName = Path.GetDirectoryName(options.OutFile);
+                    if (directoryName == null) throw new ArgumentNullException(nameof(directoryName));
+                    var logFileName = Path.Combine(directoryName, Path.GetFileNameWithoutExtension(options.OutFile) + ".log");
+                    var dotFileName = Path.Combine(directoryName, Path.GetFileNameWithoutExtension(options.OutFile) + ".dot");
+                    
                     // Read and process collections, build definitions, solutions, projects and assemblies
-                    var parser = new TfsBuildsParser();
-                    var assemblyData = parser.Process(options.TeamCollections, options.TeamProjects, options.ExcludedBuildDefinitions, options.Verbose);
+                    var parser = new TfsBuildsParser()
+                                 {
+                                     ExcludeBuildDefinitions = options.ExcludedBuildDefinitions,
+                                     FilterTeamProjects = options.TeamProjects,
+                                     Verbose = options.Verbose
+                                 };
+                    var assemblyData = parser.Process(options.TeamCollections);
 
                     using (var outputFile = new StreamWriter(logFileName))
                     {
-
-                        PrintAssemblyData(assemblyData, outputFile);
-
                         // Build a dependency graph based on the assembly data
                         if (options.Mode == "solution")
                         {
+                            PrintAssemblyData(assemblyData, outputFile);
                             var graph = assemblyData.GetSolutionsDependencies();
                             var graphNodes = graph.Nodes;
                             // Calculate start and end nodes
-                            var startNodes = graphNodes.Where(x => !graphNodes.Any(y => graph.GetDependenciesForNode(y).Contains(x)));
-                            var endNodes = graphNodes.Where(x => !graph.GetDependenciesForNode(x).Any());
+                            var startNodes = graphNodes.Where(x => !graphNodes.Any(y => graph.GetDependenciesForNode(y).Contains(x))).ToList();
+                            var endNodes = graphNodes.Where(x => !graph.GetDependenciesForNode(x).Any()).ToList();
                             PrintStartAndEndNodes(startNodes, endNodes, outputFile);
 
                             // Find circular references between solutions
@@ -63,13 +61,14 @@ namespace TfsBuildRelationships
                             ExportDependencyGraph(dotFileName, graph, options.TransitiveReduction, circularReferences, options.GraphExtracommands);
 
                         }
-                        else
+                        else if (options.Mode == "project")
                         {
+                            PrintAssemblyData(assemblyData, outputFile);
                             var graph = assemblyData.GetProjectsDependencies();
                             var graphNodes = graph.Nodes;
                             // Calculate start and end nodes
-                            var startNodes = graphNodes.Where(x => !graphNodes.Any(y => graph.GetDependenciesForNode(y).Contains(x)));
-                            var endNodes = graphNodes.Where(x => !graph.GetDependenciesForNode(x).Any());
+                            var startNodes = graphNodes.Where(x => !graphNodes.Any(y => graph.GetDependenciesForNode(y).Contains(x))).ToList();
+                            var endNodes = graphNodes.Where(x => !graph.GetDependenciesForNode(x).Any()).ToList();
                             PrintStartAndEndNodes(startNodes, endNodes, outputFile);
                             // Find circular references between solutions
                             var circularReferences = CircularReferencesHelper.FindCircularReferences(graph, startNodes, endNodes);
@@ -86,7 +85,10 @@ namespace TfsBuildRelationships
                             ExportDependencyGraph(dotFileName, graph, options.TransitiveReduction, circularReferences, options.GraphExtracommands);
 
                         }
-                        
+                        else
+                        {
+                            PrintList(assemblyData, outputFile);
+                        }
 
                     }
                 }
@@ -192,6 +194,34 @@ namespace TfsBuildRelationships
                                 outFile.WriteLine("\t\t\t" + referencedAssemblies);
                             }
                             outFile.WriteLine("\t\t}");
+                        }
+                        outFile.WriteLine("\t}");
+                    }
+                    outFile.WriteLine("}");
+                }
+            }
+            outFile.WriteLine("*************");
+            outFile.WriteLine();
+        }
+
+        private static void PrintList(AssembliesInfo assemblyData, StreamWriter outFile)
+        {
+            outFile.WriteLine("PROJECTS");
+            outFile.WriteLine("========");
+            foreach (var collection in assemblyData.TeamCollections)
+            {
+                outFile.WriteLine(collection);
+                foreach (var buildDefinitionInfo in collection.BuildDefinitions)
+                {
+                    outFile.WriteLine(buildDefinitionInfo);
+                    outFile.WriteLine("{");
+                    foreach (var solutionData in buildDefinitionInfo.Solutions)
+                    {
+                        outFile.WriteLine("\t" + solutionData);
+                        outFile.WriteLine("\t{");
+                        foreach (var projectData in solutionData.Projects)
+                        {
+                            outFile.WriteLine("\t\t" + projectData);
                         }
                         outFile.WriteLine("\t}");
                     }

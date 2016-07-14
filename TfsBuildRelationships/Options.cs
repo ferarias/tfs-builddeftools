@@ -16,7 +16,7 @@ namespace TfsBuildRelationships
         [OptionArray('x', "excludebuilds", Required = false, DefaultValue = new string[] { }, HelpText = "A list of build definitions to be excluded from analysis.")]
         public string[] ExcludedBuildDefinitions { get; set; }
 
-        [Option('m', "mode", Required = false, DefaultValue = "project", HelpText = "project|solution")]
+        [Option('m', "mode", Required = false, DefaultValue = "", HelpText = "project|solution")]
         public string Mode { get; set; }
 
         [Option('o', "out", Required = true, HelpText = "Output name for log and Graphviz DOT file.")]
