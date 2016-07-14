@@ -45,14 +45,14 @@ namespace TfsBuildRelationships
                             var graphNodes = graph.Nodes;
                             // Calculate start and end nodes
                             var startNodes = graphNodes.Where(x => !graphNodes.Any(y => graph.GetDependenciesForNode(y).Contains(x)));
-                            var endNodes = graphNodes.Where(x => graph.GetDependenciesForNode(x).Count() == 0);
+                            var endNodes = graphNodes.Where(x => !graph.GetDependenciesForNode(x).Any());
                             PrintStartAndEndNodes(startNodes, endNodes, outputFile);
 
                             // Find circular references between solutions
                             var circularReferences = CircularReferencesHelper.FindCircularReferences(graph, startNodes, endNodes);
                             PrintCircularReferences(circularReferences, outputFile);
 
-                            if(circularReferences.Count() == 0)
+                            if(!circularReferences.Any())
                             {
                                 var sortedNodes = graphNodes.ToList();
                                 sortedNodes.Sort();
@@ -69,13 +69,13 @@ namespace TfsBuildRelationships
                             var graphNodes = graph.Nodes;
                             // Calculate start and end nodes
                             var startNodes = graphNodes.Where(x => !graphNodes.Any(y => graph.GetDependenciesForNode(y).Contains(x)));
-                            var endNodes = graphNodes.Where(x => graph.GetDependenciesForNode(x).Count() == 0);
+                            var endNodes = graphNodes.Where(x => !graph.GetDependenciesForNode(x).Any());
                             PrintStartAndEndNodes(startNodes, endNodes, outputFile);
                             // Find circular references between solutions
                             var circularReferences = CircularReferencesHelper.FindCircularReferences(graph, startNodes, endNodes);
                             PrintCircularReferences(circularReferences, outputFile);
 
-                            if (circularReferences.Count() == 0)
+                            if (!circularReferences.Any())
                             {
                                 var sortedNodes = graphNodes.ToList();
                                 sortedNodes.Sort();
@@ -111,13 +111,13 @@ namespace TfsBuildRelationships
         {
             try
             {
-                if (circularReferences.Count() == 0 && transitiveReduction)
+                if (!circularReferences.Any() && transitiveReduction)
                     graph.TransitiveReduction();
                 var dotCommandBuilder = new DotCommandBuilder<T>();
                 var dotCommand = dotCommandBuilder.GenerateDotCommand(graph, circularReferences, graphExtraCommands);
                 File.WriteAllText(fileName, dotCommand, Encoding.ASCII);
 
-                Console.WriteLine("Graph exported to '{0}'", System.IO.Path.GetFullPath(fileName));
+                Console.WriteLine("Graph exported to '{0}'", Path.GetFullPath(fileName));
             }
             catch (Exception ex)
             {

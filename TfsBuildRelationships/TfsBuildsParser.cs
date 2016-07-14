@@ -33,7 +33,7 @@ namespace TfsBuildRelationships
 
                 var teamCollectionInfo = new TeamCollectionInfo(tfsTeamProjectCollection);
                 var buildDefinitions = SearchBuildDefinitions(tfsTeamProjectCollection, "*.Main");
-                if (teamProjects.Count() > 0)
+                if (teamProjects.Any())
                     buildDefinitions = buildDefinitions.Where(x => teamProjects.Contains(x.TeamProject));
                 foreach (var buildDefinition in buildDefinitions.Where(x => !excludeBuildDefinitions.Contains(x.Name)))
                 {
