@@ -23,6 +23,8 @@ namespace TfsBuildRelationships
 
         public string[] FilterTeamProjects { get; set; }
 
+        public string BuildNameFilter { get; set; }
+
         public AssembliesInfo Process(IEnumerable<string> teamCollections)
         {
             var assembliesInfo = new AssembliesInfo();
@@ -33,7 +35,7 @@ namespace TfsBuildRelationships
                 Console.WriteLine($"Collection '{tfsTeamProjectCollection.DisplayName}'");
 
                 var teamCollectionInfo = new TeamCollectionInfo(tfsTeamProjectCollection);
-                var buildDefinitions = SearchBuildDefinitions(tfsTeamProjectCollection, "*.Main");
+                var buildDefinitions = SearchBuildDefinitions(tfsTeamProjectCollection, BuildNameFilter);
                 if (FilterTeamProjects.Any())
                     buildDefinitions = buildDefinitions.Where(x => FilterTeamProjects.Contains(x.TeamProject));
                 foreach (var buildDefinition in buildDefinitions.Where(x => !ExcludeBuildDefinitions.Contains(x.Name)))

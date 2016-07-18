@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using CommandLine;
+﻿using CommandLine;
 using CommandLine.Text;
 
 namespace TfsBuildRelationships
@@ -9,6 +7,9 @@ namespace TfsBuildRelationships
     {
         [OptionArray('c', "collections", Required = true, HelpText = "Team Collections Uris.")]
         public string[] TeamCollections { get; set; }
+
+        [Option('f', "buildnames", Required = true, DefaultValue = "*.Main", HelpText = "Build name filter.")]
+        public string BuildNameFilter { get; set; }
 
         [OptionArray('p', "projects", Required = false, DefaultValue = new string[] { }, HelpText = "Team projects. If not set, builds from all projects will be chosen.")]
         public string[] TeamProjects { get; set; }

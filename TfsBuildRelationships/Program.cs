@@ -26,17 +26,18 @@ namespace TfsBuildRelationships
                     if (directoryName == null) throw new ArgumentNullException(nameof(directoryName));
                     var logFileName = Path.Combine(directoryName, Path.GetFileNameWithoutExtension(options.OutFile) + ".log");
                     var dotFileName = Path.Combine(directoryName, Path.GetFileNameWithoutExtension(options.OutFile) + ".dot");
-                    
+
                     // Read and process collections, build definitions, solutions, projects and assemblies
                     var parser = new TfsBuildsParser()
-                                 {
-                                     ExcludeBuildDefinitions = options.ExcludedBuildDefinitions,
-                                     FilterTeamProjects = options.TeamProjects,
-                                     Verbose = options.Verbose
-                                 };
+                    {
+                        BuildNameFilter = options.BuildNameFilter,
+                        ExcludeBuildDefinitions = options.ExcludedBuildDefinitions,
+                        FilterTeamProjects = options.TeamProjects,
+                        Verbose = options.Verbose
+                    };
                     var assemblyData = parser.Process(options.TeamCollections);
                     Console.WriteLine($"Took {sw.ElapsedMilliseconds}ms to process all build definitions.");
-                    
+
 
                     using (var outputFile = new StreamWriter(logFileName))
                     {
