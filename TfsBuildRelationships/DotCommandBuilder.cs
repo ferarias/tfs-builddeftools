@@ -144,10 +144,10 @@ namespace TfsBuildRelationships
             else
                 style.Append("shape=box");
             if (isCircularRefNode)
-                style.Append(",color=red,style=filled");
+                style.Append(",color=\"#ff00005f\",style=filled");
             else
                 if (isSource)
-                    style.Append(",color=lightblue,style=filled");
+                    style.Append(",color=\"#0000ff5f\",style=filled");
                 else if (isSink)
                     style.Append(",color=green,style=filled");
 
@@ -158,9 +158,9 @@ namespace TfsBuildRelationships
         {
             var style = new StringBuilder();
             if (isCircularRefEdge)
-                style.Append("color=red,style=bold");
+                style.Append("color=\"#ff00005f\",style=bold");
             else
-                style.Append("color=black");
+                style.Append("color=\"#3333335f\"");
             return style.ToString();
         }
 
