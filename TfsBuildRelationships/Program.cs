@@ -28,6 +28,7 @@ namespace TfsBuildRelationships
                     var dotFileName = Path.Combine(directoryName, Path.GetFileNameWithoutExtension(options.OutFile) + ".dot");
 
                     // Read and process collections, build definitions, solutions, projects and assemblies
+                    Console.WriteLine("Reading and process collections, build definitions, solutions, projects and assemblies...");
                     var parser = new TfsBuildsParser()
                     {
                         BuildNameFilter = options.BuildNameFilter,
@@ -38,26 +39,28 @@ namespace TfsBuildRelationships
                     var assemblyData = parser.Process(options.TeamCollections);
                     Console.WriteLine($"Took {sw.ElapsedMilliseconds}ms to process all build definitions.");
 
-
                     using (var outputFile = new StreamWriter(logFileName))
                     {
                         // Build a dependency graph based on the assembly data
                         if (options.Mode == "solution")
                         {
+                            Console.Write("Calculating solution dependencies... ");
                             sw.Restart();
                             PrintAssemblyData(assemblyData, outputFile);
                             var graph = assemblyData.GetSolutionsDependencies();
                             var graphNodes = graph.Nodes;
-                            Console.WriteLine($"Took {sw.ElapsedMilliseconds}ms to calculate solution dependencies.");
+                            Console.WriteLine($"took {sw.ElapsedMilliseconds}ms.");
 
                             // Calculate start and end nodes
+                            Console.Write("Calculating start and end nodes... ");
                             sw.Restart();
                             var startNodes = graphNodes.Where(x => !graphNodes.Any(y => graph.GetDependenciesForNode(y).Contains(x))).ToList();
                             var endNodes = graphNodes.Where(x => !graph.GetDependenciesForNode(x).Any()).ToList();
                             PrintStartAndEndNodes(startNodes, endNodes, outputFile);
-                            Console.WriteLine($"Took {sw.ElapsedMilliseconds}ms to calculate start/end nodes.");
+                            Console.WriteLine($"took {sw.ElapsedMilliseconds}ms.");
 
                             // Find circular references between solutions
+                            Console.Write("Calculating circular references between solutions... ");
                             sw.Restart();
                             var circularReferences = CircularReferencesHelper.FindCircularReferences(graph, startNodes, endNodes);
                             PrintCircularReferences(circularReferences, outputFile);
@@ -67,30 +70,34 @@ namespace TfsBuildRelationships
                                 sortedNodes.Sort();
                                 PrintBuildOrder(sortedNodes, outputFile);
                             }
-                            Console.WriteLine($"Took {sw.ElapsedMilliseconds}ms to calculate circular references.");
+                            Console.WriteLine($"Took {sw.ElapsedMilliseconds}ms.");
 
-                            //// Export dependencies graph
+                            // Export dependencies graph
+                            Console.Write("Exporting dependencies graph... ");
                             sw.Restart();
-                            ExportDependencyGraph(dotFileName, graph, options.TransitiveReduction, circularReferences, options.GraphExtracommands);
-                            Console.WriteLine($"Took {sw.ElapsedMilliseconds}ms to export dependency graph.");
+                            ExportDependencyGraph(dotFileName, graph, circularReferences, options);
+                            Console.WriteLine($"took {sw.ElapsedMilliseconds}ms.");
 
                         }
                         else if (options.Mode == "project")
                         {
+                            Console.Write("Calculating solution dependencies... ");
                             sw.Restart();
                             PrintAssemblyData(assemblyData, outputFile);
                             var graph = assemblyData.GetProjectsDependencies();
                             var graphNodes = graph.Nodes;
-                            Console.WriteLine($"Took {sw.ElapsedMilliseconds}ms to calculate solution dependencies.");
+                            Console.WriteLine($"took {sw.ElapsedMilliseconds}ms.");
 
                             // Calculate start and end nodes
+                            Console.Write("Calculating start and end nodes... ");
                             sw.Restart();
                             var startNodes = graphNodes.Where(x => !graphNodes.Any(y => graph.GetDependenciesForNode(y).Contains(x))).ToList();
                             var endNodes = graphNodes.Where(x => !graph.GetDependenciesForNode(x).Any()).ToList();
                             PrintStartAndEndNodes(startNodes, endNodes, outputFile);
-                            Console.WriteLine($"Took {sw.ElapsedMilliseconds}ms to calculate start/end nodes.");
+                            Console.WriteLine($"took {sw.ElapsedMilliseconds}ms.");
 
                             // Find circular references between solutions
+                            Console.Write("Calculating circular references between solutions... ");
                             sw.Restart();
                             var circularReferences = CircularReferencesHelper.FindCircularReferences(graph, startNodes, endNodes);
                             PrintCircularReferences(circularReferences, outputFile);
@@ -101,12 +108,13 @@ namespace TfsBuildRelationships
                                 sortedNodes.Sort();
                                 PrintBuildOrder(sortedNodes, outputFile);
                             }
-                            Console.WriteLine($"Took {sw.ElapsedMilliseconds}ms to calculate circular references.");
+                            Console.WriteLine($"took {sw.ElapsedMilliseconds}ms.");
 
-                            //// Export dependencies graph
+                            // Export dependencies graph
+                            Console.Write("Exporting dependencies graph... ");
                             sw.Restart();
-                            ExportDependencyGraph(dotFileName, graph, options.TransitiveReduction, circularReferences, options.GraphExtracommands);
-                            Console.WriteLine($"Took {sw.ElapsedMilliseconds}ms to export dependency graph.");
+                            ExportDependencyGraph(dotFileName, graph, circularReferences, options);
+                            Console.WriteLine($"took {sw.ElapsedMilliseconds}ms.");
                         }
                         else
                         {
@@ -117,29 +125,25 @@ namespace TfsBuildRelationships
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine();
-                    Console.WriteLine("An error occured:");
-                    Console.WriteLine(ex.Message);
-                    Console.WriteLine();
+                    Console.WriteLine($"\nAn error occured:\n{ex.Message}\n");
                 }
             }
             else
             {
-                Console.WriteLine("Couldn't read options");
-                Console.WriteLine();
+                Console.WriteLine("Couldn't read options\n");
             }
 
         }
 
 
-        private static void ExportDependencyGraph<T>(string fileName, DependencyGraph<T> graph, bool transitiveReduction, List<List<T>> circularReferences, string graphExtraCommands) where T : IGraphNode, IComparable
+        private static void ExportDependencyGraph<T>(string fileName, DependencyGraph<T> graph, List<List<T>> circularReferences, Options options) where T : IGraphNode, IComparable
         {
             try
             {
-                if (!circularReferences.Any() && transitiveReduction)
+                if (!circularReferences.Any() && options.TransitiveReduction)
                     graph.TransitiveReduction();
                 var dotCommandBuilder = new DotCommandBuilder<T>();
-                var dotCommand = dotCommandBuilder.GenerateDotCommand(graph, circularReferences, graphExtraCommands);
+                var dotCommand = dotCommandBuilder.GenerateDotCommand(graph, circularReferences, options.GraphExtracommands, options.Verbose);
                 File.WriteAllText(fileName, dotCommand, Encoding.ASCII);
 
                 Console.WriteLine("Graph exported to '{0}'", Path.GetFullPath(fileName));

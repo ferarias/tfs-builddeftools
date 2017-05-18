@@ -1,8 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace TfsBuildRelationships
 {
@@ -19,7 +16,7 @@ namespace TfsBuildRelationships
         /// Gets all nodes
         /// </summary>
         /// <returns>Enumeration of nodes</returns>
-        public HashSet<T> Nodes { get; set; }
+        public HashSet<T> Nodes { get; }
 
         private readonly Dictionary<T, HashSet<T>> _dependenciesByNode = new Dictionary<T, HashSet<T>>();
 
@@ -41,10 +38,7 @@ namespace TfsBuildRelationships
 
             dependencySet.Add(dependency);
         }
-
         
-        
-
         /// <summary>
         /// Gets all the dependencies for a node
         /// </summary>

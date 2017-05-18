@@ -1,31 +1,23 @@
 ﻿using System.Collections.Generic;
-using TfsBuildRelationships.GraphStructures;
 
 namespace TfsBuildRelationships.AssemblyInfo
 {
     public class AssembliesInfo
     {
-        public List<TeamCollectionInfo> TeamCollections
-        {
-            get;
-            set;
-        }
-        public AssembliesInfo()
-        {
-            this.TeamCollections = new List<TeamCollectionInfo>();
-        }
+        public List<TeamCollectionInfo> TeamCollections { get; } = new List<TeamCollectionInfo>();
+        
         public HashSet<string> GetAllAssemblies()
         {
-            HashSet<string> hashSet = new HashSet<string>();
-            foreach (TeamCollectionInfo current in this.TeamCollections)
+            var hashSet = new HashSet<string>();
+            foreach (var teamCollection in TeamCollections)
             {
-                foreach (BuildDefinitionInfo current2 in current.BuildDefinitions)
+                foreach (var buildDefinition in teamCollection.BuildDefinitions)
                 {
-                    foreach (SolutionInfo current3 in current2.Solutions)
+                    foreach (var solution in buildDefinition.Solutions)
                     {
-                        foreach (ProjectInfo current4 in current3.Projects)
+                        foreach (var project in solution.Projects)
                         {
-                            hashSet.Add(current4.GeneratedAssembly);
+                            hashSet.Add(project.GeneratedAssembly);
                         }
                     }
                 }
@@ -34,27 +26,27 @@ namespace TfsBuildRelationships.AssemblyInfo
         }
         internal DependencyGraph<SolutionInfo> GetSolutionsDependencies()
         {
-            DependencyGraph<SolutionInfo> dependencyGraph = new DependencyGraph<SolutionInfo>();
-            foreach (TeamCollectionInfo current in this.TeamCollections)
+            var dependencyGraph = new DependencyGraph<SolutionInfo>();
+            foreach (var teamCollection in TeamCollections)
             {
-                foreach (BuildDefinitionInfo current2 in current.BuildDefinitions)
+                foreach (var buildDefinition in teamCollection.BuildDefinitions)
                 {
-                    foreach (SolutionInfo current3 in current2.Solutions)
+                    foreach (var solution in buildDefinition.Solutions)
                     {
-                        dependencyGraph.Nodes.Add(current3);
-                        current3.DependentSolutions = new List<SolutionInfo>();
-                        foreach (ProjectInfo current4 in current3.Projects)
+                        dependencyGraph.Nodes.Add(solution);
+                        solution.DependentSolutions = new List<SolutionInfo>();
+                        foreach (var project in solution.Projects)
                         {
-                            foreach (TeamCollectionInfo current5 in this.TeamCollections)
+                            foreach (var otherCollection in TeamCollections)
                             {
-                                foreach (BuildDefinitionInfo current6 in current5.BuildDefinitions)
+                                foreach (var otherBuildDefinition in otherCollection.BuildDefinitions)
                                 {
-                                    foreach (SolutionInfo current7 in current6.Solutions)
+                                    foreach (var otherSolution in otherBuildDefinition.Solutions)
                                     {
-                                        if (current7.ReferencedAssemblies.Contains(current4.GeneratedAssembly))
+                                        if (otherSolution.ReferencedAssemblies.Contains(project.GeneratedAssembly))
                                         {
-                                            dependencyGraph.AddDependency(current7, current3);
-                                            current7.DependentSolutions.Add(current3);
+                                            dependencyGraph.AddDependency(otherSolution, solution);
+                                            otherSolution.DependentSolutions.Add(solution);
                                         }
                                     }
                                 }
@@ -67,29 +59,29 @@ namespace TfsBuildRelationships.AssemblyInfo
         }
         internal DependencyGraph<ProjectInfo> GetProjectsDependencies()
         {
-            DependencyGraph<ProjectInfo> dependencyGraph = new DependencyGraph<ProjectInfo>();
-            foreach (TeamCollectionInfo current in this.TeamCollections)
+            var dependencyGraph = new DependencyGraph<ProjectInfo>();
+            foreach (var teamCollection in TeamCollections)
             {
-                foreach (BuildDefinitionInfo current2 in current.BuildDefinitions)
+                foreach (var buildDefinition in teamCollection.BuildDefinitions)
                 {
-                    foreach (SolutionInfo current3 in current2.Solutions)
+                    foreach (var solution in buildDefinition.Solutions)
                     {
-                        foreach (ProjectInfo current4 in current3.Projects)
+                        foreach (var project in solution.Projects)
                         {
-                            dependencyGraph.Nodes.Add(current4);
-                            current4.DependentProjects = new List<ProjectInfo>();
-                            foreach (TeamCollectionInfo current5 in this.TeamCollections)
+                            dependencyGraph.Nodes.Add(project);
+                            project.DependentProjects = new List<ProjectInfo>();
+                            foreach (var otherTeamCollection in TeamCollections)
                             {
-                                foreach (BuildDefinitionInfo current6 in current5.BuildDefinitions)
+                                foreach (var otherBuildDefinition in otherTeamCollection.BuildDefinitions)
                                 {
-                                    foreach (SolutionInfo current7 in current6.Solutions)
+                                    foreach (var otherSolution in otherBuildDefinition.Solutions)
                                     {
-                                        foreach (ProjectInfo current8 in current7.Projects)
+                                        foreach (var otherProject in otherSolution.Projects)
                                         {
-                                            if (current8.ReferencedAssemblies.Contains(current4.GeneratedAssembly))
+                                            if (otherProject.ReferencedAssemblies.Contains(project.GeneratedAssembly))
                                             {
-                                                dependencyGraph.AddDependency(current8, current4);
-                                                current8.DependentProjects.Add(current4);
+                                                dependencyGraph.AddDependency(otherProject, project);
+                                                otherProject.DependentProjects.Add(project);
                                             }
                                         }
                                     }

@@ -17,7 +17,7 @@ namespace TfsBuildRelationships
         /// </summary>
         private Dictionary<T, int> NodeIdMap { get; set; }
 
-        public string GenerateDotCommand(DependencyGraph<T> graph, List<List<T>> circularReferences, string extraCommands)
+        public string GenerateDotCommand(DependencyGraph<T> graph, List<List<T>> circularReferences, string extraCommands, bool verbose)
         {
             // Init
             NodeIdMap = new Dictionary<T, int>();
@@ -63,7 +63,12 @@ namespace TfsBuildRelationships
             foreach (var node in graphStructure.Nodes)
             {
                 var attributes = node.Value.Attributes;
-                commandText.AppendFormat("\t{0} [{1},label=\"{0}\\n{2}\"];\r\n", node.Key, attributes, node.Value.Label);
+                string nodeLabel;
+                if (verbose)
+                    nodeLabel = $"{node.Key}\\n{node.Value.Label}";
+                else
+                    nodeLabel = node.Value.Label;
+                commandText.AppendFormat("\t{0} [{1},label=\"{2}\"];\r\n", node.Key, attributes, nodeLabel);
             }
             commandText.AppendLine();
 
@@ -75,19 +80,16 @@ namespace TfsBuildRelationships
 
         private GraphStructure PrepareGraph(DependencyGraph<T> graph, List<List<T>> circularReferences)
         {
-            var startNodes = graph.Nodes.Where(x => !graph.Nodes.Any(y => graph.GetDependenciesForNode(y).Contains(x))).Select(z => NodeIdMap[z]);
-            var endNodes = graph.Nodes.Where(x => graph.GetDependenciesForNode(x).Count() == 0).Select(z => NodeIdMap[z]);
+            var startNodes = graph.Nodes.Where(x => !graph.Nodes.Any(y => graph.GetDependenciesForNode(y).Contains(x))).Select(z => NodeIdMap[z]).ToList();
+            var endNodes = graph.Nodes.Where(x => !graph.GetDependenciesForNode(x).Any()).Select(z => NodeIdMap[z]).ToList();
 
-            var circularReferenceInvolvedNodes = new List<int>();
-            foreach (var circularReference in circularReferences)
-                foreach (var reference in circularReference)
-                    circularReferenceInvolvedNodes.Add(NodeIdMap[reference]);
+            var circularReferenceInvolvedNodes = (from circularReference in circularReferences from reference in circularReference select NodeIdMap[reference]).ToList();
 
 
             var graphStructure = new GraphStructure();
             var processing = new Queue<GraphNode>();
 
-            if (startNodes.Count() == 0 && endNodes.Count() == 0 && graph.Nodes.Count() > 0)
+            if (!startNodes.Any() && !endNodes.Any() && graph.Nodes.Any())
                 // Probably, it's all a big cycle. Let's start with any one
                 startNodes = new List<int>() { NodeIdMap[graph.Nodes.First()] };
 

@@ -26,7 +26,7 @@ namespace UnitTests
 
             var allNodes = dependencies.Nodes;
             var startNodes = allNodes.Where(x => !allNodes.Any(y => dependencies.GetDependenciesForNode(y).Contains(x)));
-            var endNodes = allNodes.Where(x => dependencies.GetDependenciesForNode(x).Count() == 0);
+            var endNodes = allNodes.Where(x => !dependencies.GetDependenciesForNode(x).Any());
 
             Assert.IsFalse(startNodes.Contains("A"));
             Assert.IsTrue(startNodes.Contains("B"));
@@ -37,8 +37,8 @@ namespace UnitTests
             Assert.IsTrue(endNodes.Contains("F"));
             Assert.IsTrue(endNodes.Contains("H"));
 
-            var circularReferences = CircularReferencesHelper.FindCircularReferences(dependencies, startNodes, endNodes);
-            Assert.IsTrue(circularReferences.Count() > 0);
+            var circularReferences = CircularReferencesHelper.FindCircularReferences(dependencies, startNodes.ToList(), endNodes.ToList());
+            Assert.IsTrue(circularReferences.Any());
 
 
         }
@@ -51,10 +51,10 @@ namespace UnitTests
 
             var allNodes = dependencies.Nodes;
             var startNodes = allNodes.Where(x => !allNodes.Any(y => dependencies.GetDependenciesForNode(y).Contains(x)));
-            var endNodes = allNodes.Where(x => dependencies.GetDependenciesForNode(x).Count() == 0);
+            var endNodes = allNodes.Where(x => !dependencies.GetDependenciesForNode(x).Any());
 
-            var circularReferences = CircularReferencesHelper.FindCircularReferences(dependencies, startNodes, endNodes);
-            Assert.IsTrue(circularReferences.Count() > 0);
+            var circularReferences = CircularReferencesHelper.FindCircularReferences(dependencies, startNodes.ToList(), endNodes.ToList());
+            Assert.IsTrue(circularReferences.Any());
 
 
         }
@@ -86,10 +86,10 @@ namespace UnitTests
 
             var allNodes = dependencies.Nodes;
             var startNodes = allNodes.Where(x => !allNodes.Any(y => dependencies.GetDependenciesForNode(y).Contains(x)));
-            var endNodes = allNodes.Where(x => dependencies.GetDependenciesForNode(x).Count() == 0);
+            var endNodes = allNodes.Where(x => !dependencies.GetDependenciesForNode(x).Any());
 
-            var circularReferences = CircularReferencesHelper.FindCircularReferences(dependencies, startNodes, endNodes);
-            Assert.IsTrue(circularReferences.Count() == 1);
+            var circularReferences = CircularReferencesHelper.FindCircularReferences(dependencies, startNodes.ToList(), endNodes.ToList());
+            Assert.IsTrue(circularReferences.Count == 1);
             Assert.IsTrue(circularReferences[0][0] == "1");
             Assert.IsTrue(circularReferences[0][1] == "");
 

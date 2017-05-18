@@ -37,14 +37,14 @@ namespace TfsBuildRelationships.AssemblyInfo
         }
         public ProjectInfo(SolutionInfo solutionInfo)
         {
-            this.ReferencedAssemblies = new HashSet<string>();
-            this.ReferencedProjects = new HashSet<Guid>();
-            this.DependentProjects = new List<ProjectInfo>();
-            this.Solution = solutionInfo;
+            ReferencedAssemblies = new HashSet<string>();
+            ReferencedProjects = new HashSet<Guid>();
+            DependentProjects = new List<ProjectInfo>();
+            Solution = solutionInfo;
         }
         public override string ToString()
         {
-            return string.Format("[{0} ({1}) ({2} refs)]", GeneratedAssembly, ProjectGuid, ReferencedAssemblies.Count);
+            return $"[{GeneratedAssembly} ({ProjectGuid}) ({ReferencedAssemblies.Count} refs)]";
         }
         public int CompareTo(object obj)
         {
@@ -52,28 +52,28 @@ namespace TfsBuildRelationships.AssemblyInfo
             {
                 return 1;
             }
-            ProjectInfo projectInfo = obj as ProjectInfo;
+            var projectInfo = obj as ProjectInfo;
             if (projectInfo == null)
             {
                 throw new ArgumentException("Object is not a ProjectInfo");
             }
-            if (this.ProjectGuid == projectInfo.ProjectGuid)
+            if (ProjectGuid == projectInfo.ProjectGuid)
             {
                 return 0;
             }
-            if (this.ReferencedProjects.Contains(projectInfo.ProjectGuid))
+            if (ReferencedProjects.Contains(projectInfo.ProjectGuid))
             {
                 return -1;
             }
-            if (projectInfo.ReferencedProjects.Contains(this.ProjectGuid))
+            if (projectInfo.ReferencedProjects.Contains(ProjectGuid))
             {
                 return 0;
             }
-            if (this.ReferencedAssemblies.Contains(projectInfo.GeneratedAssembly))
+            if (ReferencedAssemblies.Contains(projectInfo.GeneratedAssembly))
             {
                 return -1;
             }
-            if (projectInfo.ReferencedAssemblies.Contains(this.GeneratedAssembly))
+            if (projectInfo.ReferencedAssemblies.Contains(GeneratedAssembly))
             {
                 return 0;
             }
@@ -81,7 +81,7 @@ namespace TfsBuildRelationships.AssemblyInfo
         }
         public string GetLabel()
         {
-            return string.Format("{0}", this.GeneratedAssembly);
+            return $"{GeneratedAssembly}";
         }
     }
 }

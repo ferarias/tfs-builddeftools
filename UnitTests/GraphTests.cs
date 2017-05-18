@@ -63,11 +63,11 @@ namespace UnitTests
         public void GenerateDot()
         {
             var startNodes = Graph.Nodes.Where(x => !Graph.Nodes.Any(y => Graph.GetDependenciesForNode(y).Contains(x)));
-            var endNodes = Graph.Nodes.Where(x => Graph.GetDependenciesForNode(x).Count() == 0);
-            var circularReferences = CircularReferencesHelper.FindCircularReferences(Graph, startNodes, endNodes);
+            var endNodes = Graph.Nodes.Where(x => !Graph.GetDependenciesForNode(x).Any());
+            var circularReferences = CircularReferencesHelper.FindCircularReferences(Graph, startNodes.ToList(), endNodes.ToList());
 
             var dotCommandBuilder = new DotCommandBuilder<ProjectInfo>();
-            var dotCommand = dotCommandBuilder.GenerateDotCommand(Graph, circularReferences, "");
+            var dotCommand = dotCommandBuilder.GenerateDotCommand(Graph, circularReferences, "", true);
             Console.WriteLine(dotCommand);
         }
 
@@ -79,11 +79,11 @@ namespace UnitTests
             Graph.AddDependency(pG, pA);
 
             var startNodes = Graph.Nodes.Where(x => !Graph.Nodes.Any(y => Graph.GetDependenciesForNode(y).Contains(x)));
-            var endNodes = Graph.Nodes.Where(x => Graph.GetDependenciesForNode(x).Count() == 0);
-            var circularReferences = CircularReferencesHelper.FindCircularReferences(Graph, startNodes, endNodes);
+            var endNodes = Graph.Nodes.Where(x => !Graph.GetDependenciesForNode(x).Any());
+            var circularReferences = CircularReferencesHelper.FindCircularReferences(Graph, startNodes.ToList(), endNodes.ToList());
 
             var dotCommandBuilder = new DotCommandBuilder<ProjectInfo>();
-            var dotCommand = dotCommandBuilder.GenerateDotCommand(Graph, circularReferences, "");
+            var dotCommand = dotCommandBuilder.GenerateDotCommand(Graph, circularReferences, "", true);
             Console.WriteLine(dotCommand);
         }
     }

@@ -1,16 +1,13 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace TfsBuildRelationships.GraphStructures
 {
     public class GraphStructure
     {
-        public IDictionary<int, GraphNode> Nodes { get; set; }
+        public IDictionary<int, GraphNode> Nodes { get; }
 
-        public IDictionary<KeyValuePair<int, int>, GraphEdge> Relationships { get; set; }
+        public IDictionary<KeyValuePair<int, int>, GraphEdge> Relationships { get; }
 
 
         public GraphStructure()
@@ -29,21 +26,6 @@ namespace TfsBuildRelationships.GraphStructures
         {
             return Nodes[i].Processed;
         }
-    }
-
-
-    public class GraphNode
-    {
-
-        public int Id { get; set; }
-
-        public string Label { get; set; }
-
-        public bool Processed { get; set; }
-
-        public int Level { get; set; }
-
-        public string Attributes { get; set; }
     }
 
     public class GraphEdge
