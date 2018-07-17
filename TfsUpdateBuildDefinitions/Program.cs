@@ -42,7 +42,7 @@ namespace TfsUpdateBuildDefinitions
                     Console.WriteLine("\tNo-compile Template: {0}", CommonData.NoCompileFullTemplatePath);
                     Console.WriteLine("\tParallel processing: {0}", options.Parallel);
                     Console.WriteLine("\tData file: {0}", options.DataFile);
-                    Console.WriteLine("\tSkip Params: {0}", options.SkipParameters);
+                    Console.WriteLine("\tSkip Params: {0}", string.Join(", ", options.SkipParameters));
                     Console.WriteLine("\tSave build definitions: {0}", options.Save);
                     Console.WriteLine("\tDeployment packages UNC: {0}", CommonData.DeploymentPackagesLocation);
 
