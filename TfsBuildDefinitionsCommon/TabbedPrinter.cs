@@ -76,10 +76,11 @@ namespace TfsBuildDefinitionsCommon
             return false;
         }
 
-        public string PrintObject(Object obj)
+        public string PrintObject(object obj)
         {
-            var objects = obj as IEnumerable<object>;
-            return objects != null ? String.Join(",", objects.Select(x => x.ToString()).ToArray()) : obj.ToString();
+            return obj is IEnumerable<object> objects 
+                ? string.Join(",", objects.Select(x => x.ToString()).ToArray()) 
+                : obj.ToString();
         }
     }
 }

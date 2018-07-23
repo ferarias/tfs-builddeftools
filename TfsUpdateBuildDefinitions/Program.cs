@@ -7,7 +7,6 @@ using System.Threading.Tasks;
 using CommandLine;
 using Microsoft.TeamFoundation.Build.Client;
 using Microsoft.TeamFoundation.Build.Workflow;
-using Microsoft.TeamFoundation.Server;
 using TfsBuildDefinitionsCommon;
 
 namespace TfsUpdateBuildDefinitions
