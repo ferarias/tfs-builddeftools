@@ -16,9 +16,17 @@ namespace TfsBuildDefinitionsCommon
 
         public readonly IProcessTemplate NoCompileFullTemplate;
         public readonly string NoCompileFullTemplatePath;
+
         public readonly IProcessTemplate ServicesTemplate;
         public readonly string ServicesTemplatePath;
+
+        public readonly IProcessTemplate TopShelfServicesTemplate;
+        public readonly string TopShelfServicesTemplatePath;
+
+        public readonly IProcessTemplate NewStandardTemplate;
         public readonly IProcessTemplate StandardTemplate;
+
+        public readonly string NewStandardTemplatePath;
         public readonly string StandardTemplatePath;
 
         public CommonStructure(BaseUpdateOptions options)
@@ -28,20 +36,27 @@ namespace TfsBuildDefinitionsCommon
             BuildServer = Collection.GetService<IBuildServer>();
             CommonStructureService = Collection.GetService<ICommonStructureService>();
 
+            string newStandardTemplateName = GetConfigValueAsString(SettingsKeys.NewStandardTemplateName,
+                Constants.DefaultNewStandardTemplateName);
             string standardTemplateName = GetConfigValueAsString(SettingsKeys.StandardTemplateName,
                 Constants.DefaultStandardTemplateName);
             string servicesTemplateName = GetConfigValueAsString(SettingsKeys.ServicesTemplate,
                 Constants.DefaultServicesTemplateName);
+            string topShelfServicesTemplateName = GetConfigValueAsString(SettingsKeys.TopShelfServicesTemplate,
+                Constants.DefaultTopShelfServicesTemplateName);
             string noCompileFullTemplateName = GetConfigValueAsString(SettingsKeys.NoCompileFullTemplate,
                 Constants.DefaultNoCompileFullTemplateName);
 
-            StandardTemplatePath = String.Format("$/{0}/BuildProcessTemplates/{1}", options.TemplatesTeamProject,
-                standardTemplateName);
-            ServicesTemplatePath = String.Format("$/{0}/BuildProcessTemplates/{1}", options.TemplatesTeamProject,
-                servicesTemplateName);
-            NoCompileFullTemplatePath = String.Format("$/{0}/BuildProcessTemplates/{1}", options.TemplatesTeamProject,
-                noCompileFullTemplateName);
+            NewStandardTemplatePath = $"$/{options.TemplatesTeamProject}/BuildProcessTemplates/{newStandardTemplateName}";
+            StandardTemplatePath = $"$/{options.TemplatesTeamProject}/BuildProcessTemplates/{standardTemplateName}";
+            ServicesTemplatePath = $"$/{options.TemplatesTeamProject}/BuildProcessTemplates/{servicesTemplateName}";
+            TopShelfServicesTemplatePath = $"$/{options.TemplatesTeamProject}/BuildProcessTemplates/{topShelfServicesTemplateName}";
+            NoCompileFullTemplatePath = $"$/{options.TemplatesTeamProject}/BuildProcessTemplates/{noCompileFullTemplateName}";
 
+            NewStandardTemplate = CheckCreate(options.TemplatesTeamProject, NewStandardTemplatePath);
+            if (NewStandardTemplate == null)
+                Console.WriteLine("New Standard template not found in '{0}' of '{1}'", NewStandardTemplatePath,
+                    options.TeamCollection);
             StandardTemplate = CheckCreate(options.TemplatesTeamProject, StandardTemplatePath);
             if (StandardTemplate == null)
                 Console.WriteLine("Standard template not found in '{0}' of '{1}'", StandardTemplatePath,
@@ -50,6 +65,11 @@ namespace TfsBuildDefinitionsCommon
             ServicesTemplate = CheckCreate(options.TemplatesTeamProject, ServicesTemplatePath);
             if (ServicesTemplate == null)
                 Console.WriteLine("Services template not found in '{0}' of '{1}'", ServicesTemplatePath,
+                    options.TeamCollection);
+
+            TopShelfServicesTemplate = CheckCreate(options.TemplatesTeamProject, TopShelfServicesTemplatePath);
+            if (TopShelfServicesTemplate == null)
+                Console.WriteLine("TopShelf Services template not found in '{0}' of '{1}'", TopShelfServicesTemplatePath,
                     options.TeamCollection);
 
             NoCompileFullTemplate = CheckCreate(options.TemplatesTeamProject, NoCompileFullTemplatePath);

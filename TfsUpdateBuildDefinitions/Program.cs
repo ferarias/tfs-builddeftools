@@ -169,7 +169,7 @@ namespace TfsUpdateBuildDefinitions
 
         }
 
-        
+
 
         private static bool ChangeDefinition(IBuildDefinition definition, Options options)
         {
@@ -180,7 +180,7 @@ namespace TfsUpdateBuildDefinitions
                 if (buildType == CustomBuildType.Cdn) return false;
 
                 if (!CheckTemplates(buildType)) return false;
-                
+
                 var messages = new StringBuilder();
 
                 var changed = SetTemplate(definition, buildType, messages) ||
@@ -267,7 +267,7 @@ namespace TfsUpdateBuildDefinitions
                         {"AssociateChangesetsAndWorkItems", false},
                         {"ConfigurationsToBuild", (isMain || isRelease) ? new[] {Constants.AnyCpuRelease} : new[] {Constants.AnyCpuDebug}},
                         {"DisableTests", !isRelease},
-                        {"DropBuild", (isMain || isRelease)},
+                        {"DropBuild", false},
                         {"IsRelease", isRelease},
                         {"DeploymentPackagesLocation", buildType == CustomBuildType.StandardRelease ? CommonData.DeploymentPackagesLocation : null},
                         {"CustomBinariesReferencePath",Path.Combine(options.SharedTfsLocation, Constants.AssembliesFolder, isRelease ? Constants.ReleaseFolder : Constants.MainFolder)},
@@ -282,7 +282,7 @@ namespace TfsUpdateBuildDefinitions
             var customConfig = _externalConfiguration[definition.Name];
             foreach (var customConfigItem in customConfig)
             {
-                if (config.ContainsKey(customConfigItem.Key)) 
+                if (config.ContainsKey(customConfigItem.Key))
                     config[customConfigItem.Key] = customConfigItem.Value;
                 else
                 {
@@ -303,24 +303,24 @@ namespace TfsUpdateBuildDefinitions
         private static bool SetDropLocation(IBuildDefinition definition, Options options, CustomBuildType buildType, StringBuilder messages)
         {
             var newLocation = String.Empty;
-            switch (buildType)
-            {
-                case CustomBuildType.StandardDev:
-                case CustomBuildType.NoCompileDev:
-                    newLocation = Path.Combine(options.SharedTfsLocation, Constants.DropFolder, Constants.DevFolder);
-                    break;
-                case CustomBuildType.StandardMain:
-                case CustomBuildType.NoCompileMain:
-                    newLocation = Path.Combine(options.SharedTfsLocation, Constants.DropFolder, Constants.MainFolder);
-                    break;
-                case CustomBuildType.StandardRelease:
-                    newLocation = "#/";
-                    break;
-                case CustomBuildType.WindowsService:
-                case CustomBuildType.NoCompileRelease:
-                    newLocation = "";
-                    break;
-            }
+            //switch (buildType)
+            //{
+            //    case CustomBuildType.StandardDev:
+            //    case CustomBuildType.NoCompileDev:
+            //        newLocation = Path.Combine(options.SharedTfsLocation, Constants.DropFolder, Constants.DevFolder);
+            //        break;
+            //    case CustomBuildType.StandardMain:
+            //    case CustomBuildType.NoCompileMain:
+            //        newLocation = Path.Combine(options.SharedTfsLocation, Constants.DropFolder, Constants.MainFolder);
+            //        break;
+            //    case CustomBuildType.StandardRelease:
+            //        newLocation = "#/";
+            //        break;
+            //    case CustomBuildType.WindowsService:
+            //    case CustomBuildType.NoCompileRelease:
+            //        newLocation = "";
+            //        break;
+            //}
 
             if (newLocation == definition.DefaultDropLocation) return false;
 
@@ -342,6 +342,9 @@ namespace TfsUpdateBuildDefinitions
             var newTemplate = CommonData.StandardTemplate;
             switch (buildType)
             {
+                case CustomBuildType.NewStandardMain:
+                    newTemplate = CommonData.NewStandardTemplate;
+                    break;
                 case CustomBuildType.StandardDev:
                 case CustomBuildType.StandardMain:
                 case CustomBuildType.StandardRelease:
@@ -355,6 +358,13 @@ namespace TfsUpdateBuildDefinitions
                 case CustomBuildType.WindowsService:
                     newTemplate = CommonData.ServicesTemplate;
                     break;
+                case CustomBuildType.TopShelfWindowsService:
+                    newTemplate = CommonData.TopShelfServicesTemplate;
+                    break;
+                case CustomBuildType.Cdn:
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(buildType), buildType, null);
             }
 
             if (newTemplate.Id == definition.Process.Id) return false;
@@ -375,6 +385,9 @@ namespace TfsUpdateBuildDefinitions
         {
             switch (buildType)
             {
+                case CustomBuildType.NewStandardMain:
+                    if (CommonData.NewStandardTemplate == null) return false;
+                    break;
                 case CustomBuildType.StandardDev:
                 case CustomBuildType.StandardMain:
                 case CustomBuildType.StandardRelease:
@@ -404,6 +417,8 @@ namespace TfsUpdateBuildDefinitions
             var buildDefName = definition.Name.ToLower();
             if (buildDefName.EndsWith(Constants.ServiceBuildsNameExtension.ToLower()))
                 buildType = CustomBuildType.WindowsService;
+            if (buildDefName.EndsWith(Constants.TopShelfServiceBuildsNameExtension.ToLower()))
+                buildType = CustomBuildType.TopShelfWindowsService;
             else if (buildDefName.EndsWith(Constants.ResourcesDevBuildsNameExtension.ToLower()))
                 buildType = CustomBuildType.NoCompileDev;
             else if (buildDefName.EndsWith(Constants.ResourcesMainBuildsNameExtension.ToLower()))
@@ -411,8 +426,11 @@ namespace TfsUpdateBuildDefinitions
             else if (buildDefName.EndsWith(Constants.ResourcesReleaseBuildsNameExtension.ToLower()))
                 buildType = CustomBuildType.NoCompileRelease;
             else if (buildDefName.StartsWith(Constants.CdnBuildsNamePrefix.ToLower()))
-                buildType = CustomBuildType.Cdn;else if (buildDefName.EndsWith(Constants.DevBuildsNameExtension.ToLower()))
+                buildType = CustomBuildType.Cdn;
+            else if (buildDefName.EndsWith(Constants.DevBuildsNameExtension.ToLower()))
                 buildType = CustomBuildType.StandardDev;
+            else if (buildDefName.EndsWith(Constants.NewMainBuildsNameExtension.ToLower()))
+                buildType = CustomBuildType.NewStandardMain;
             else if (buildDefName.EndsWith(Constants.MainBuildsNameExtension.ToLower()))
                 buildType = CustomBuildType.StandardMain;
             else if (buildDefName.EndsWith(Constants.ReleaseBuildsNameExtension.ToLower()))
