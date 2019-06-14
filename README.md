@@ -1,3 +1,7 @@
+# tfs-builddeftools
+TFS tools to manipulate Custom Build Definitions
+
+Suitable for on-premise versions of TFS such as TFS 2013 and TFS 2015
 # Introduction 
 TODO: Give a short introduction of your project. Let this section explain the objectives or the motivation behind this project. 
 
